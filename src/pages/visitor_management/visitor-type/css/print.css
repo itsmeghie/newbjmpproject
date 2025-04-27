@@ -1,0 +1,18 @@
+@media print {
+    #printable-table {
+        overflow: visible !important; 
+        max-height: none; 
+    }
+
+    .ant-dropdown, .ant-btn {
+        display: none !important;
+    }
+
+    .ant-pagination {
+        display: none !important;
+    }
+
+    .ant-table-pagination {
+        display: none !important;
+    }
+}

@@ -1,0 +1,113 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Manrope:wght@200..800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+  /* width: 100vw;
+    height: 100vh; */
+}
+
+* {
+  @apply m-0 p-0 box-border;
+}
+
+#root {
+  @apply h-full font-primary;
+}
+
+ul li a {
+  @apply text-[0.875rem] font-semibold;
+}
+
+a.active {
+  @apply font-primary;
+}
+
+a.active div {
+  @apply bg-[rgba(0,0,0,.15)] rounded-lg;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Hides scrollbar in WebKit browsers (Chrome, Safari, Edge) */
+}
+
+.scrollbar-hide {
+  scrollbar-width: none; /* Hides scrollbar in Firefox */
+  -ms-overflow-style: none; /* Hides scrollbar in IE/Edge */
+}
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+  }
+}
+
+.register-visitor-form input {
+  border: px solid #eaeaec;
+  border-radius: 6px;
+  height: 3rem;
+  width: 100%;
+  padding-left: 1rem;
+  padding-right: 0.40rem;
+}
+
+.register-visitor-form input:focus {
+  outline: none;
+}
+
+.custom-upload-card .ant-upload {
+  width: 200px !important;
+  height: 200px !important;
+  line-height: 200px !important;
+}
+ 
+.custom-upload-card .ant-upload-list-picture-card-container {
+  width: 200px !important;
+  height: 200px !important;
+}
+ 
+.custom-upload-card .ant-upload-list-item-container {
+  width: 200px !important;
+  height: 200px !important;
+}
+ 
+.custom-upload-card .ant-upload-list-item-thumbnail {
+  width: 100% !important;
+  height: 100% !important;
+}
+ 
+.custom-upload-card .ant-upload-list-item-thumbnail img {
+  object-fit: cover;
+  width: 100% !important;
+  height: 100% !important;
+}
+ 
+ 
+.custom-upload-card-big .ant-upload {
+  width: 400px !important;
+  height: 400px !important;
+}
+ 
+.custom-upload-card-big .ant-upload-list-picture-card-container {
+  width: 400px !important;
+  height: 400px !important;
+}
+ 
+.custom-upload-card-big .ant-upload-list-item-container {
+  width: 400px !important;
+  height: 400px !important;
+}
+ 
+.custom-upload-card-big .ant-upload-list-item-thumbnail {
+  width: 100% !important;
+  height: 100% !important;
+}
+ 
+.custom-upload-card-big .ant-upload-list-item-thumbnail img {
+  object-fit: cover;
+  width: 100% !important;
+  height: 100% !important;
+}
