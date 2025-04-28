@@ -94,6 +94,7 @@ import Relationship from "./pages/pdl_management/Relationship/Relationship.tsx";
 import PDLtable from "./pages/pdl_management/pdl-information/PDLs.tsx";
 import PDLVisitors from "./pages/LOG/PDLVisitor/PDLVisitors.tsx";
 import VisitorProfileSlider from "./pages/LOG/visitor-profiles/VisitorProfileSlider.tsx";
+import Verify from "./pages/screening/verify/Verify.tsx";
 
 // Lazy-loaded components
 const Home = React.lazy(() => import("./pages/dashboard/Home.tsx"));
@@ -311,6 +312,10 @@ function App() {
                 {
                     path: "screening",
                     element: <Screening />
+                },
+                {
+                    path: "screening/verify",
+                    element: <Verify />
                 },
                 {
                     path: "pdls",

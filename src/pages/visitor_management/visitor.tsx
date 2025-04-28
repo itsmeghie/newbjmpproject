@@ -233,7 +233,7 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
         const headerHeight = 48;
         const footerHeight = 32;
         const organizationName = dataSource[0]?.organization || ""; 
-        const PreparedBy = dataSource[0]?.updated_by || ''; 
+        const PreparedBy = dataSource[0]?.updated || ''; 
     
         const today = new Date();
         const formattedDate = today.toISOString().split('T')[0];
