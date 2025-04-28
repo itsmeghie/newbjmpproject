@@ -15,12 +15,17 @@ import { useRef } from "react";
 import noimg from '../../../public/noimg.png'
 import { AiOutlineDelete, AiOutlineEdit } from "react-icons/ai"
 import { patchVisitor } from "@/lib/query";
+import html2canvas from 'html2canvas';
 import { GoDownload } from "react-icons/go";
 import bjmp from '../../assets/Logo/QCJMD.png'
 
 type Visitor = VisitorRecord;
 
-const Visitor = () => {
+interface VisitorProps {
+    handlePrintPDF: () => void;
+}
+
+const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
     const [searchText, setSearchText] = useState("");
     const [selectedVisitor, setSelectedVisitor] = useState<Visitor | null>(null);
     const queryClient = useQueryClient();
@@ -119,14 +124,16 @@ const Visitor = () => {
     const waiverResults = fuse.search("waiver");
     
     const waiverData = waiverResults?.[0]?.item || null;
-    const CohabitationData = waiverResults?.[1]?.item || null;
-    
+    const CohabitationData = selectedVisitor?.person?.media_requirements?.find(
+        (m: any) => m.name?.toLowerCase() === "cohabitation"
+    );
     
 
     const dataSource = data?.map((visitor, index) => ({
         ...visitor,
         key: index + 1,
-        organization: visitor?.org ?? 'Bureau of Jail Management and Penology',
+        organization: visitor?.organization ?? 'Bureau of Jail Management and Penology',
+        name: `${visitor?.person?.first_name ?? 'N/A'} ${visitor?.person?.middle_name ?? ''} ${visitor?.person?.last_name ?? 'N/A'}`.trim(),
         updated: `${UserData?.first_name ?? ''} ${UserData?.last_name ?? ''}`,
     })) || [];
     
@@ -221,25 +228,19 @@ const Visitor = () => {
         </div>
     );
 
-    const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dataSource);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Visitors");
-        XLSX.writeFile(wb, "Visitors.xlsx");
-    };
-
     const handleExportPDF = () => {
         const doc = new jsPDF();
         const headerHeight = 48;
         const footerHeight = 32;
-        const organizationName = dataSource[0]?.organization || "Bureau of Jail Management and Penology";
-        const PreparedBy = dataSource[0]?.updated || ''; 
+        const organizationName = dataSource[0]?.organization || ""; 
+        const PreparedBy = dataSource[0]?.updated_by || ''; 
     
         const today = new Date();
         const formattedDate = today.toISOString().split('T')[0];
         const reportReferenceNo = `TAL-${formattedDate}-XXX`;
     
-        const maxRowsPerPage = 29; 
+        const maxRowsPerPage = 27; 
+    
         let startY = headerHeight;
     
         const addHeader = () => {
@@ -263,36 +264,23 @@ const Visitor = () => {
             doc.text("Department/ Unit: IT", 10, 40);
             doc.text("Report Reference No.: " + reportReferenceNo, 10, 45);
         };
+        
     
-        addHeader();
+        addHeader(); 
     
-        const tableData = dataSource.map(item => {
-            const region = item.person?.addresses?.[0]?.region || '';
-            const province = item.person?.addresses?.[0]?.province || '';
-            const municipality = item.person?.addresses?.[0]?.municipality || '';
-            const formattedAddress = [region, province, municipality]
-                .filter(Boolean) 
-                .join(', ');
-    
-            const fullName = [
-                item.person?.prefix || '',
-                item.person?.first_name || '',
-                item.person?.last_name || ''
-            ].filter(Boolean).join(' ').trim();
-    
-            return [
-                item.key,
-                item.visitor_reg_no,
-                fullName,
-                formattedAddress,
-            ];
-        });
+        const tableData = dataSource.map(item => [
+            item.key,
+            item.visitor_reg_no,
+            item.name,
+            item.visitor_type,
+            item.approved_by,
+        ]);
     
         for (let i = 0; i < tableData.length; i += maxRowsPerPage) {
             const pageData = tableData.slice(i, i + maxRowsPerPage);
     
             autoTable(doc, { 
-                head: [['No.', 'Visitor Reg. No.', 'Full Name', 'Address']],
+                head: [['No.', 'Visitor Registration No.', 'Name', 'Visitor Type', 'Approved By']],
                 body: pageData,
                 startY: startY,
                 margin: { top: 0, left: 10, right: 10 },
@@ -330,12 +318,18 @@ const Visitor = () => {
         setPdfDataUrl(pdfOutput);
         setIsPdfModalOpen(true);
     };
-    
 
     const handleClosePdfModal = () => {
         setIsPdfModalOpen(false);
         setPdfDataUrl(null); 
     };
+    
+    const handleExportExcel = () => {
+        const ws = XLSX.utils.json_to_sheet(dataSource);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Visitors");
+        XLSX.writeFile(wb, "Visitors.xlsx");
+    };  
 
     const menu = (
         <Menu>
@@ -367,13 +361,49 @@ const Visitor = () => {
             visitor_type_id: value
         }));
     };
+
+    const handleDownloadPDF = async () => {
+        if (!modalContentRef.current) return;
+    
+        const canvas = await html2canvas(modalContentRef.current, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: "#ffffff",
+            scrollY: -window.scrollY,
+        });
+    
+        const imgData = canvas.toDataURL("image/png");
+    
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+    
+        const imgProps = pdf.getImageProperties(imgData);
+        const imgWidth = pdfWidth;
+        const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+    
+        let heightLeft = imgHeight;
+        let position = 0;
+    
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pdfHeight;
+    
+        while (heightLeft > 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pdfHeight;
+        }
+    
+        pdf.save('visitor-profile.pdf');
+    };
     return (
         <div>
             <div className="h-[90vh] flex flex-col">
                 {contextHolder}
                 <h1 className="text-3xl font-bold text-[#1E365D]">Visitor</h1>
                 <div className="flex my-4 justify-between">
-                <div className="flex gap-2">
+                    <div className="flex gap-2">
                         <Dropdown className="bg-[#1E365D] py-2 px-5 rounded-md text-white" overlay={menu}>
                             <a className="ant-dropdown-link gap-2 flex items-center " onClick={e => e.preventDefault()}>
                                 <GoDownload /> Export
@@ -733,9 +763,9 @@ const Visitor = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className="flex justify-end ml-auto pr-10 mt-5 print:hidden">
+                        <div className="flex justify-end mt-5 print:hidden">
                             <button
-                                onClick={handlePrintPDF}
+                                onClick={handleDownloadPDF}
                                 className="px-4 py-1 bg-[#2F3237] text-white rounded-md text-sm"
                             >
                                 Print PDF
