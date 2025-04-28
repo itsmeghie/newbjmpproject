@@ -101,11 +101,11 @@ const AddDeviceType = ({ onClose }: { onClose: () => void }) => {
     };
 
     return (
-        <div className="mt-10">
+        <div>
             {contextHolder}
             <form onSubmit={handleDevicesTypeSubmit}>
                 <h1 className="text-xl font-semibold">Add Device Type</h1>
-                <div className="grid grid-cols-1 md:grid-cols-2 mt-5 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 mt-3 gap-5">
                     <div>
                         <p>Device Type:</p>
                         <input type="text" name="device_type" id="device_type" onChange={handleInputChange} placeholder="Device Type" className="w-full h-12 border border-gray-300 rounded-lg px-2" />

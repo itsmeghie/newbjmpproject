@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import clsx from 'clsx';
-import logo from '@/assets/tambuli_alert_logo.png'
+import logo from '@/assets/Logo/QCJMD.png'
 
 interface SidebarProps {
     children?: ReactNode;

@@ -135,7 +135,7 @@ const EditDetentionBuilding = ({ detentionBuilding, onClose }: { detentionBuildi
                         />
                 </Form.Item>
                 <Form.Item>
-                    <Button type="primary" htmlType="submit" disabled={isLoading}>
+                    <Button type="primary" className="flex ml-auto" htmlType="submit" disabled={isLoading}>
                         {isLoading ? "Updating..." : "Update Detention Building"}
                     </Button>
                 </Form.Item>

@@ -98,7 +98,7 @@ const AddCell = ({ onClose }: { onClose: () => void }) => {
     };
 
     return (
-        <div className="mt-10">
+        <div>
             {contextHolder}
             <form onSubmit={handleCellSubmit}>
                 <div className="grid grid-cols-1 mt-5 gap-5">

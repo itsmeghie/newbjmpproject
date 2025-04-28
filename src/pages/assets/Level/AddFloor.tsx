@@ -123,7 +123,7 @@ const AddFloor = ({ onClose }: { onClose: () => void }) => {
     <div>
     {contextHolder}
         <form onSubmit={handleFloorSubmit}>
-          <h1>Add Detention Floort</h1>
+          <h1 className="font-semibold">Add Annex</h1>
             <div className="grid grid-cols-1 md:grid-cols-2 w-full gap-3">
                 <div>
                     <p className="text-gray-500 font-bold">Building:</p>

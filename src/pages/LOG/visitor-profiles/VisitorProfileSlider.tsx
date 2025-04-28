@@ -13,7 +13,8 @@ const VisitorProfileSlider = () => {
     const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true })
     const [autoPlay, setAutoPlay] = useState(true)
     const autoPlayIntervalRef = useRef<NodeJS.Timeout | null>(null)
-    const visitorLogs = useVisitorLogStore((state) => state.visitorLogs)
+    const { clearVisitorLogs, visitorLogs } = useVisitorLogStore()
+
 
     const handle = useFullScreenHandle();
     const contentRef = useRef<HTMLDivElement>(null)
@@ -128,7 +129,7 @@ const VisitorProfileSlider = () => {
                                 ))
                             ) : (
                                 <div className="flex-[0_0_100%] flex justify-center items-center text-gray-400">
-                                    No visitors yet 🚶‍♂️
+                                    No visitors yet
                                 </div>
                             )}
                         </div>
@@ -161,7 +162,7 @@ const VisitorProfileSlider = () => {
                     </button>
                 </div>
             </FullScreen>
-            <div className="flex gap-2 mt-2">
+            <div className="w-full flex gap-2 mt-2 relative mb-5">
                 <button className="bg-gray-800 text-white p-2 rounded" onClick={handle.enter}>Fullscreen</button>
                 <button className="bg-blue-600 text-white p-2 rounded" onClick={downloadAsImage}>Download as Image</button>
                 <button className="bg-green-600 text-white p-2 rounded" onClick={downloadAsPDF}>Download as PDF</button>
@@ -171,6 +172,7 @@ const VisitorProfileSlider = () => {
                 >
                     {autoPlay ? <><Pause className="w-4 h-4" /> Pause</> : <><Play className="w-4 h-4" /> Play</>}
                 </button>
+                <button className="bg-red-600 text-white p-2 rounded absolute right-2" onClick={clearVisitorLogs}>Clear Logs</button>
             </div>
         </>
     )

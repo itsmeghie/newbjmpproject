@@ -96,11 +96,11 @@ const AddJailCategory = ({ onClose }: { onClose: () => void }) => {
     };
 
     return (
-        <div className="mt-10">
+        <div>
             {contextHolder}
             <form onSubmit={handlejailTypeSubmit}>
                 <h1 className="text-xl font-semibold">Jail Category</h1>
-                <div className="flex mt-5 gap-5 w-full">
+                <div className="flex mt-3 gap-5 w-full">
                     <div className="flex flex-col gap-2 flex-1">
                         <div>
                             <p>Category:</p>

@@ -74,7 +74,7 @@ const AddDeviceUsage = ({ onClose }: { onClose: () => void }) => {
     };
 
     return (
-        <div className="mt-10">
+        <div>
             {contextHolder}
             <form onSubmit={handleDevicesUsageSubmit}>
                 <div className="flex flex-col gap-3">

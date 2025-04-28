@@ -13,7 +13,10 @@ import { useTokenStore } from "@/store/useTokenStore";
 const QrReader = () => {
   const [lastScanned, setLastScanned] = useState<any>({});
   const [dateTime, setDateTime] = useState<string>("");
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | number>("");
   const token = useTokenStore()?.token
+
+  console.log(lastScanned)
 
   const { data, isLoading } = useQuery({
     queryKey: ['get-devices', 'qr-reader'],
@@ -47,7 +50,7 @@ const QrReader = () => {
 
   if (lastScanned?.person?.media) {
     const frontPicture = lastScanned?.person?.media?.find(
-      ( media: { picture_view: string; }) => media?.picture_view === "Front"
+      (media: { picture_view: string; }) => media?.picture_view === "Front"
     )?.media_binary;
 
     if (frontPicture) {
@@ -55,30 +58,40 @@ const QrReader = () => {
     }
   }
 
+  const handleDeviceChange = (value: string | number) => {
+    setSelectedDeviceId(value);
+  };
+
+  const handleClear = () => {
+    setLastScanned({});
+  };
 
   return (
-    <div className="w-full flex flex-col gap-2">
+    <div className="w-full h-full flex flex-col gap-2">
       <div className="w-full flex">
         <div className="flex-1 flex items-center justify-center">
           <div className="w-full flex flex-col items-center gap-4">
-            <div>
-              <img src={QCJMD_logo} alt="QCJMD Logo" />
+            <div className="w-[30%] flex items-center justify-center">
+              <img src={QCJMD_logo} alt="QCJMD Logo" className="w-full h-full object-cover" />
             </div>
             <div className="w-full flex flex-col items-center gap-4">
-              <h1 className="text-4xl font-semibold">VISITOR CHECK-IN / CHECK-OUT</h1>
+              <h1 className="text-3xl font-semibold">VISITOR CHECK-IN / CHECK-OUT</h1>
               <p>{dateTime}</p>
             </div>
             <div className="w-full flex flex-col items-center gap-10">
-              <h2 className="text-3xl font-semibold">Align your QR code within the box to scan</h2>
-              <QrScanner setLastScanned={setLastScanned} />
+              <h2 className="text-2xl font-semibold">Align your QR code within the box to scan</h2>
+              <QrScanner
+                setLastScanned={setLastScanned}
+                selectedDeviceId={selectedDeviceId}
+              />
             </div>
           </div>
         </div>
         <div className="flex-1 text-gray-500">
           <div className="flex flex-col items-center justify-center">
             <div className="w-full flex items-center justify-center flex-col gap-10">
-              <div className="w-[75%] rounded-md overflow-hidden object-cover">
-                <img src={imageSrc || noImg} alt="Image of a person" className="w-full"/>
+              <div className="w-[60%] rounded-md overflow-hidden object-cover">
+                <img src={imageSrc || noImg} alt="Image of a person" className="w-full" />
               </div>
               <h1 className="text-4xl">{`${lastScanned?.person?.first_name ?? ""} ${lastScanned?.person?.last_name ?? ""}`}</h1>
             </div>
@@ -86,8 +99,14 @@ const QrReader = () => {
               <div className="w-[80%] text-4xl flex">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex-[4] flex gap-8">
-                    <span>STATUS:</span>
-                    <span>ALLOWED VISIT</span>
+                    {
+                      lastScanned && (
+                        <>
+                          <span>STATUS:</span>
+                          <span>ALLOWED VISIT</span>
+                        </>
+                      )
+                    }
                   </div>
                   <div className="flex justify-end flex-1 gap-4">
                     <div className="w-16">
@@ -115,10 +134,18 @@ const QrReader = () => {
               label: device?.device_name,
               value: device?.id
             }))}
+            value={selectedDeviceId || undefined}
+            onChange={handleDeviceChange}
+            placeholder="Select a device"
           />
         </div>
         <div className="mr-24">
-          <button className="bg-blue-200 py-1 px-10 font-semibold rounded hover:bg-blue-500 hover:text-white">Clear</button>
+          <button
+            className="bg-blue-200 py-1 px-10 font-semibold rounded hover:bg-blue-500 hover:text-white"
+            onClick={handleClear}
+          >
+            Clear
+          </button>
         </div>
       </div>
     </div>

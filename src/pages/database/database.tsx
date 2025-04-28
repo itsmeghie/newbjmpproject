@@ -100,7 +100,7 @@ const Database = () => {
                         link="/jvms/database/looks"
                         title="Looks"/>
                         <GodotLink
-                        link=""
+                        link="/jvms/pdls/relationship"
                         title="Relationships"/>
                     </div>
                 </div>

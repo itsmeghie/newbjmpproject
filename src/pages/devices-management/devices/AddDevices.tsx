@@ -138,7 +138,7 @@ const AddDevices = ({ onClose }: { onClose: () => void }) => {
     };
 
     return (
-        <div className="mt-10">
+        <div>
             {contextHolder}
             <form onSubmit={handleDevicesSubmit}>
                 <h1 className="text-xl font-semibold">Add Device</h1>

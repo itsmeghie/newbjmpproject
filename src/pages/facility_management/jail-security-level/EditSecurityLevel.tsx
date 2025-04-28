@@ -51,7 +51,7 @@ const EditSecurityLevel = ({ securitylevel, onClose }: { securitylevel: any; onC
                 }}
             >
                 <Form.Item
-                    label="Category Name"
+                    label="Security Level"
                     name="category_name"
                 >
                     <Input />

@@ -196,7 +196,7 @@ const EditFloor = ({ detentionFloor, onClose }: { detentionFloor: any; onClose: 
                     <Input />
                 </Form.Item>
                 <Form.Item>
-                    <Button type="primary" htmlType="submit" disabled={isLoading}>
+                    <Button type="primary" className="flex ml-auto" htmlType="submit" disabled={isLoading}>
                         {isLoading ? "Updating..." : "Update Detention Floor"}
                     </Button>
                 </Form.Item>

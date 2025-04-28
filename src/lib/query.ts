@@ -1,8 +1,7 @@
-import { CourtBranch, CourtRecord, CrimeCategory, Ethnicities, GangAffiliation, Law, Offense, PDLtoVisit, Precinct, VisitorApplicationPayload, VisitorRecord } from "./definitions";
-import { PersonnelForm, Relationship } from "./issues-difinitions";
+import { CourtBranch, CourtRecord, CrimeCategory, Ethnicities, GangAffiliation, Law, Offense, PDLtoVisit, Precinct, User, VisitorApplicationPayload, VisitorRecord } from "./definitions";
+import { PersonnelForm, Relationship, Role } from "./issues-difinitions";
 import { PDLs } from "./pdl-definitions";
 import { BASE_URL } from "./urls";
-import { VisitorForm } from "./visitorFormDefinition";
 
 export const deletePDL = async (token: string, id: number) => {
     const response = await fetch(
@@ -435,10 +434,56 @@ export async function getVisitor(
         Authorization: `Token ${token}`,
         },
     });
-
     if (!res.ok) {
         throw new Error("Failed to fetch Visitor data.");
     }
+    return res.json();
+}
 
+export const patchUsers = async (
+    token: string,
+    data: Partial<User>
+    ): Promise<User> => {
+    const url = `${BASE_URL}/api/user/me/`;
+    const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${token}`,
+        },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Failed to update User");
+    return res.json();
+};
+
+export async function getRole(
+    token: string
+    ): Promise<Role[]> {
+    const res = await fetch(`${BASE_URL}/api/standards/groups/`, {
+        headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${token}`,
+        },
+    });
+    if (!res.ok) {
+        throw new Error("Failed to fetch Role data.");
+    }
+    return res.json();
+}
+
+
+export async function getPermission(
+    token: string
+    ): Promise<Role[]> {
+    const res = await fetch(`${BASE_URL}/api/standards/permissions/`, {
+        headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${token}`,
+        },
+    });
+    if (!res.ok) {
+        throw new Error("Failed to fetch Permission data.");
+    }
     return res.json();
 }

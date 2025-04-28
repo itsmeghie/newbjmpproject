@@ -1,30 +1,46 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Scanner, IDetectedBarcode } from '@yudiel/react-qr-scanner';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useVisitorLogStore } from '@/store/useVisitorLogStore';
 import { BASE_URL } from '@/lib/urls';
 import { message } from 'antd';
 
-const QrScanner = ({ setLastScanned }: { setLastScanned: React.Dispatch<React.SetStateAction<any>> }) => {
+const QrScanner = ({
+    setLastScanned,
+    selectedDeviceId
+}: {
+    setLastScanned: React.Dispatch<React.SetStateAction<any>>;
+    selectedDeviceId: string | number;
+}) => {
     const token = useTokenStore()?.token;
     const addOrRemoveVisitorLog = useVisitorLogStore((state) => state.addOrRemoveVisitorLog);
-
-    const logs = useVisitorLogStore()?.visitorLogs
-    console.log(logs)
 
     const [scannedQR, setScannedQR] = useState<string | null>(null);
     const [isFetching, setIsFetching] = useState(false);
     const [error, setError] = useState<Error | null>(null);
 
+    // Add this ref to track the last processed QR code
+    const lastProcessedQR = useRef<string | null>(null);
+    // Add this ref to track scan cooldown
+    const scanCooldown = useRef<boolean>(false);
+
     useEffect(() => {
         const fetchVisitorLog = async () => {
             if (!scannedQR) return;
+            if (!selectedDeviceId) {
+                message.warning("Please select a device.")
+                return
+            };
+
+            // Update the last processed QR value
+            lastProcessedQR.current = scannedQR;
 
             setIsFetching(true);
             setError(null);
 
             try {
+                // First API call - GET visitor log
                 const res = await fetch(`${BASE_URL}/api/visit-logs/visitor-specific/?encrypted_id_number=${scannedQR}`, {
                     method: 'get',
                     headers: {
@@ -39,27 +55,87 @@ const QrScanner = ({ setLastScanned }: { setLastScanned: React.Dispatch<React.Se
 
                 const data = await res.json();
 
-                addOrRemoveVisitorLog(data);
                 setLastScanned(data);
+                // Store and display the visitor data
+                addOrRemoveVisitorLog(data);
+
+                // Second API call - POST to visits endpoint
+                if (data && selectedDeviceId) {
+                    const postRes = await fetch(`${BASE_URL}/api/visit-logs/visits/`, {
+                        method: 'post',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Token ${token}`
+                        },
+                        body: JSON.stringify({
+                            device_id: selectedDeviceId,
+                            id_number: data.id_number,
+                            binary_data: data.encrypted_id_number_qr
+                        })
+                    });
+
+                    if (!postRes.ok) {
+                        throw new Error(`Failed to log visit. Status: ${postRes.status}`);
+                    }
+
+                    const visitLogResponse = await postRes.json();
+                    message.success("Visit logged successfully!");
+
+                    // Third API call - POST to visits-tracking endpoint
+                    if (visitLogResponse?.id) {
+                        const trackingRes = await fetch(`${BASE_URL}/api/visit-logs/visits-tracking/`, {
+                            method: 'post',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Token ${token}`
+                            },
+                            body: JSON.stringify({
+                                visit_id: visitLogResponse.id
+                            })
+                        });
+
+                        if (!trackingRes.ok) {
+                            throw new Error(`Failed to log visit tracking. Status: ${trackingRes.status}`);
+                        }
+
+                        // const trackingResponse = await trackingRes.json();
+                        message.success("Visit tracking created successfully!");
+                        message.success("Process Complete!");
+                    } else {
+                        message.warning("Missing visit ID for tracking");
+                    }
+                } else {
+                    message.warning("Please select a device.");
+                }
 
             } catch (err: any) {
-                message.error('Error fetching visitor log:', err);
+                message.error(`Error: ${err.message}`);
                 setError(err);
             } finally {
                 setIsFetching(false);
                 setScannedQR(null);
+
+                // Set a cooldown period before allowing the same QR code to be scanned again
+                scanCooldown.current = true;
+                setTimeout(() => {
+                    // After 2 seconds, reset the cooldown and last processed QR
+                    scanCooldown.current = false;
+                    lastProcessedQR.current = null;
+                }, 2000);
             }
         };
 
         fetchVisitorLog();
-    }, [scannedQR, token, addOrRemoveVisitorLog, setLastScanned]);
+    }, [scannedQR, token, addOrRemoveVisitorLog, setLastScanned, selectedDeviceId]);
 
     const handleScan = (codes: IDetectedBarcode[]) => {
-        if (!isFetching && codes.length > 0) {
+        if (!isFetching && codes.length > 0 && !scanCooldown.current) {
             const firstCode = codes[0];
             const qrValue = firstCode.rawValue || null;
 
-            if (qrValue) {
+            // Only set scannedQR if it's different from the last processed QR
+            // or if we're not in a cooldown period
+            if (qrValue && (qrValue !== lastProcessedQR.current || lastProcessedQR.current === null)) {
                 setScannedQR(qrValue);
             }
         }
@@ -69,16 +145,27 @@ const QrScanner = ({ setLastScanned }: { setLastScanned: React.Dispatch<React.Se
         message.error(`Scanner error: ${String(err)}`);
     };
 
+    useEffect(() => {
+        if (isFetching) {
+            message.info("Processing scan...");
+        }
+    }, [isFetching]);
+
+    // handle showing message when error happens
+    useEffect(() => {
+        if (error) {
+            message.error(`Error: ${error.message}`);
+        }
+    }, [error]);
+
     return (
         <div className="w-[35%] mb-5">
             <Scanner
                 onScan={handleScan}
                 onError={handleError}
                 scanDelay={1000}
+                allowMultiple={false}
             />
-
-            {isFetching && <p className="mt-4 text-blue-500">Fetching visitor log...</p>}
-            {error && <p className="mt-4 text-red-500">Error fetching visitor log: {error.message}</p>}
         </div>
     );
 };

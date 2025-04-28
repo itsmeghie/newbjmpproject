@@ -72,16 +72,17 @@ const AddRoles = ({ onClose }: { onClose: () => void }) => {
     };
 
     return (
-        <div className="mt-10">
+        <div>
             {contextHolder}
             <form onSubmit={handleplatformSubmit}>
                 <div className="flex gap-5 w-full">
                     <div className="flex flex-col gap-2 flex-1">
+                        <p>Group Role Name:</p>
                         <input type="text" name="name" id="name" onChange={handleInputChange} placeholder="Role Name" className="h-12 border border-gray-300 rounded-lg px-2" />
                     </div>
                 </div>
 
-                <div className="w-full flex justify-center mt-10">
+                <div className="w-full flex justify-end mt-10">
                     <button type="submit" className="bg-blue-500 text-white w-36 px-3 py-2 rounded font-semibold text-base">
                         Submit
                     </button>

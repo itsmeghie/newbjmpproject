@@ -1,4 +1,4 @@
-import { deleteVisitors, getVisitor_Type, getVisitorSpecific, getVisitorSpecificById } from "@/lib/queries"
+import { deleteVisitors, getUser, getVisitor_Type, getVisitorSpecific, getVisitorSpecificById } from "@/lib/queries"
 import { useTokenStore } from "@/store/useTokenStore"
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query"
 import { message, Table, Modal, Button, Image, Form, Input, Select, Menu, Dropdown } from "antd"
@@ -7,17 +7,16 @@ import { useState } from "react"
 import { ColumnsType } from "antd/es/table"
 import { VisitorApplicationPayload, VisitorRecord } from "@/lib/definitions"
 import { calculateAge } from "@/functions/calculateAge"
-import html2canvas from "html2canvas";
 import { CSVLink } from "react-csv";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { useRef } from "react";
 import noimg from '../../../public/noimg.png'
-import moment from "moment"
 import { AiOutlineDelete, AiOutlineEdit } from "react-icons/ai"
 import { patchVisitor } from "@/lib/query";
 import { GoDownload } from "react-icons/go";
+import bjmp from '../../assets/Logo/QCJMD.png'
 
 type Visitor = VisitorRecord;
 
@@ -31,6 +30,8 @@ const Visitor = () => {
     const [messageApi, contextHolder] = message.useMessage();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectEditVisitor, setEditSelectedVisitor] = useState<VisitorApplicationPayload | null>(null);
+    const [pdfDataUrl, setPdfDataUrl] = useState(null);
+    const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
     const { data } = useQuery({
         queryKey: ['visitor'],
@@ -44,6 +45,11 @@ const Visitor = () => {
         },
         retry: false,
     });
+
+    const { data: UserData } = useQuery({
+        queryKey: ['user'],
+        queryFn: () => getUser(token ?? "")
+    })
 
     const deleteMutation = useMutation({
         mutationFn: (id: number) => deleteVisitors(token ?? "", id),
@@ -120,6 +126,8 @@ const Visitor = () => {
     const dataSource = data?.map((visitor, index) => ({
         ...visitor,
         key: index + 1,
+        organization: visitor?.org ?? 'Bureau of Jail Management and Penology',
+        updated: `${UserData?.first_name ?? ''} ${UserData?.last_name ?? ''}`,
     })) || [];
     
     const filteredData = dataSource?.filter((visitor:any) =>
@@ -127,35 +135,6 @@ const Visitor = () => {
             String(value).toLowerCase().includes(searchText.toLowerCase())
         )
     );
-
-    const getStatusBadge = (status:any) => {
-        switch (status?.toLowerCase()) { 
-            case 'verified':
-                return { color: 'bg-green-500', text: 'Verified' };
-            case 'pending approval':
-                return { color: 'bg-yellow-500', text: 'Pending Approval' };
-            case 'not verified':
-                return { color: 'bg-red-500', text: 'Not Verified' };
-            case 'incomplete':
-                return { color: 'bg-orange-500', text: 'Incomplete' };
-            case 'under review':
-                return { color: 'bg-blue-500', text: 'Under Review' };
-            case 'rejected':
-                return { color: 'bg-gray-500', text: 'Rejected' };
-            case 'banned':
-                return { color: 'bg-black', text: 'Banned' };
-            case 'flagged':
-                return { color: 'bg-purple-500', text: 'Flagged' };
-            case 'resubmitted required':
-                return { color: 'bg-pink-500', text: 'Resubmitted Required' };
-            case 'escorted':
-                return { color: 'bg-teal-500', text: 'Escorted' };
-            case 'pre-registered':
-                return { color: 'bg-indigo-500', text: 'Pre-Registered' };
-            default:
-                return { color: 'bg-gray-300', text: 'Unknown' };
-        }
-    };
     
     const columns: ColumnsType<Visitor> = [
         {
@@ -242,44 +221,6 @@ const Visitor = () => {
         </div>
     );
 
-    const handlePrintPDF = async () => {
-        if (!modalContentRef.current) return;
-    
-        const canvas = await html2canvas(modalContentRef.current, {
-            scale: 2,
-            useCORS: true,
-        });
-    
-        const imgData = canvas.toDataURL("image/png");
-    
-        const printWindow = window.open("", "_blank");
-        if (!printWindow) return;
-    
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Print Visitor Profile</title>
-                    <style>
-                        @media print {
-                            body, html {
-                                margin: 0;
-                                padding: 0;
-                            }
-                            img {
-                                width: 100%;
-                                height: auto;
-                            }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <img src="${imgData}" onload="window.print(); window.close();" />
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-    };
-    
     const handleExportExcel = () => {
         const ws = XLSX.utils.json_to_sheet(dataSource);
         const wb = XLSX.utils.book_new();
@@ -289,20 +230,112 @@ const Visitor = () => {
 
     const handleExportPDF = () => {
         const doc = new jsPDF();
+        const headerHeight = 48;
+        const footerHeight = 32;
+        const organizationName = dataSource[0]?.organization || "Bureau of Jail Management and Penology";
+        const PreparedBy = dataSource[0]?.updated || ''; 
     
-        autoTable(doc, { 
-            head: [['No.', 'Visitor Registration No.', 'Visitor Name', 'Visitor Type', 'Approved By']],
-            body: dataSource.map(item => [
+        const today = new Date();
+        const formattedDate = today.toISOString().split('T')[0];
+        const reportReferenceNo = `TAL-${formattedDate}-XXX`;
+    
+        const maxRowsPerPage = 29; 
+        let startY = headerHeight;
+    
+        const addHeader = () => {
+            const pageWidth = doc.internal.pageSize.getWidth(); 
+            const imageWidth = 30;
+            const imageHeight = 30; 
+            const margin = 10; 
+            const imageX = pageWidth - imageWidth - margin;
+            const imageY = 12;
+        
+            doc.addImage(bjmp, 'PNG', imageX, imageY, imageWidth, imageHeight);
+        
+            doc.setTextColor(0, 102, 204);
+            doc.setFontSize(16);
+            doc.text("Visitor Report", 10, 15); 
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            doc.text(`Organization Name: ${organizationName}`, 10, 25);
+            doc.text("Report Date: " + formattedDate, 10, 30);
+            doc.text("Prepared By: " + PreparedBy, 10, 35);
+            doc.text("Department/ Unit: IT", 10, 40);
+            doc.text("Report Reference No.: " + reportReferenceNo, 10, 45);
+        };
+    
+        addHeader();
+    
+        const tableData = dataSource.map(item => {
+            const region = item.person?.addresses?.[0]?.region || '';
+            const province = item.person?.addresses?.[0]?.province || '';
+            const municipality = item.person?.addresses?.[0]?.municipality || '';
+            const formattedAddress = [region, province, municipality]
+                .filter(Boolean) 
+                .join(', ');
+    
+            const fullName = [
+                item.person?.prefix || '',
+                item.person?.first_name || '',
+                item.person?.last_name || ''
+            ].filter(Boolean).join(' ').trim();
+    
+            return [
                 item.key,
-                item.visitor_reg_no ?? 'N/A',
-                `${item.person?.first_name ?? ''} ${item.person?.middle_name ?? ''} ${item.person?.last_name ?? ''}`.trim(),
-                item.visitor_type ?? 'N/A',
-                item.approved_by ?? 'N/A'
-            ]),
+                item.visitor_reg_no,
+                fullName,
+                formattedAddress,
+            ];
         });
     
-        doc.save('Visitors.pdf');
-    };    
+        for (let i = 0; i < tableData.length; i += maxRowsPerPage) {
+            const pageData = tableData.slice(i, i + maxRowsPerPage);
+    
+            autoTable(doc, { 
+                head: [['No.', 'Visitor Reg. No.', 'Full Name', 'Address']],
+                body: pageData,
+                startY: startY,
+                margin: { top: 0, left: 10, right: 10 },
+                didDrawPage: function (data) {
+                    if (doc.internal.getCurrentPageInfo().pageNumber > 1) {
+                        addHeader(); 
+                    }
+                },
+            });
+    
+            if (i + maxRowsPerPage < tableData.length) {
+                doc.addPage();
+                startY = headerHeight;
+            }
+        }
+    
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let page = 1; page <= pageCount; page++) {
+            doc.setPage(page);
+            const footerText = [
+                "Document Version: Version 1.0",
+                "Confidentiality Level: Internal use only",
+                "Contact Info: " + PreparedBy,
+                `Timestamp of Last Update: ${formattedDate}`
+            ].join('\n');
+            const footerX = 10;
+            const footerY = doc.internal.pageSize.height - footerHeight + 15;
+            const pageX = doc.internal.pageSize.width - doc.getTextWidth(`${page} / ${pageCount}`) - 10;
+            doc.setFontSize(8);
+            doc.text(footerText, footerX, footerY);
+            doc.text(`${page} / ${pageCount}`, pageX, footerY);
+        }
+    
+        const pdfOutput = doc.output('datauristring');
+        setPdfDataUrl(pdfOutput);
+        setIsPdfModalOpen(true);
+    };
+    
+
+    const handleClosePdfModal = () => {
+        setIsPdfModalOpen(false);
+        setPdfDataUrl(null); 
+    };
 
     const menu = (
         <Menu>
@@ -314,34 +347,8 @@ const Visitor = () => {
                     Export CSV
                 </CSVLink>
             </Menu.Item>
-            <Menu.Item>
-                <a onClick={handleExportPDF}>Export PDF</a>
-            </Menu.Item>
         </Menu>
     );
-
-    const handlePrintReport = () => {
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write('</head><body>');
-            printWindow.document.write('<h1>Visitor Relationship to PDL Report</h1>');
-            printWindow.document.write('<table border="1" style="width: 100%; border-collapse: collapse;">');
-            printWindow.document.write('<tr><th>No.</th><th>Visitor Registration No.</th><th>Visitor Name</th><th>Visitor Type</th><th>Approved By</th></tr>');
-            filteredData.forEach(item => {
-                printWindow.document.write(`<tr>
-                    <td>${item.key}</td>
-                    <td>${item.visitor_reg_no}</td>
-                    <td>${item.person?.first_name} ${item.person?.middle_name} ${item.person?.last_name}</td>
-                    <td>${item.visitor_type}</td>
-                    <td>${item.approved_by}</td>
-                </tr>`);
-            });
-            printWindow.document.write('</table>');
-            printWindow.document.write('</body></html>');
-            printWindow.document.close();
-            printWindow.print();
-        }
-    };
 
     const results = useQueries({
         queries: [
@@ -366,15 +373,15 @@ const Visitor = () => {
                 {contextHolder}
                 <h1 className="text-3xl font-bold text-[#1E365D]">Visitor</h1>
                 <div className="flex my-4 justify-between">
-                    <div className="flex gap-2">
-                        <Dropdown className="bg-[#1E365D] px-5 rounded-md text-white" overlay={menu}>
-                        <a className="ant-dropdown-link gap-2 flex items-center " onClick={e => e.preventDefault()}>
-                        <GoDownload /> Export
-                        </a>
-                    </Dropdown>
-                    <button className="bg-[#1E365D] px-5 rounded-md text-white">
-                    <a onClick={handlePrintReport}>Print Report</a>
-                    </button>
+                <div className="flex gap-2">
+                        <Dropdown className="bg-[#1E365D] py-2 px-5 rounded-md text-white" overlay={menu}>
+                            <a className="ant-dropdown-link gap-2 flex items-center " onClick={e => e.preventDefault()}>
+                                <GoDownload /> Export
+                            </a>
+                        </Dropdown>
+                        <button className="bg-[#1E365D] py-2 px-5 rounded-md text-white" onClick={handleExportPDF}>
+                            Print Report
+                        </button>
                     </div>
                     <div className="md:max-w-64 w-full bg-white pb-2">
                         <input
@@ -398,6 +405,21 @@ const Visitor = () => {
                     />
                 </div>
                 </div>
+                <Modal
+                title="Visitor Report"
+                open={isPdfModalOpen}
+                onCancel={handleClosePdfModal}
+                footer={null}
+                width="80%"
+            >
+                {pdfDataUrl && (
+                    <iframe
+                        src={pdfDataUrl}
+                        title="PDF Preview"
+                        style={{ width: '100%', height: '80vh', border: 'none' }}
+                    />
+                )}
+            </Modal>
             <Modal
                 open={selectedVisitor !== null}
                 onCancel={closeModal}

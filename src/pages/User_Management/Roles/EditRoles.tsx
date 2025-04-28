@@ -50,13 +50,13 @@ const EditRoles = ({ role, onClose }: { role: any; onClose: () => void }) => {
                 }}
             >
                 <Form.Item
-                    label="Group Role Name"
+                    label="Group Role Name:"
                     name="name"
                 >
                     <Input />
                 </Form.Item>
                 <Form.Item>
-                    <Button type="primary" htmlType="submit" disabled={isLoading}>
+                    <Button type="primary" className="flex ml-auto" htmlType="submit" disabled={isLoading}>
                         {isLoading ? "Updating..." : "Update Role"}
                     </Button>
                 </Form.Item>

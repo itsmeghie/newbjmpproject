@@ -20,22 +20,38 @@ export const useVisitorLogStore = create<VisitorLogStore>()(
   persist(
     (set, get) => ({
       visitorLogs: [],
-      addOrRemoveVisitorLog: (newLog) =>
-        set((state) => {
-          const exists = state.visitorLogs.some((log) => log.id === newLog.id);
-          const updatedLogs = exists
-            ? state.visitorLogs.filter((log) => log.id !== newLog.id)
-            : [...state.visitorLogs, newLog];
+      addOrRemoveVisitorLog: (newLog) => {
+        const state = get();
+        const exists = state.visitorLogs.some((log) => log.id === newLog.id);
+        const updatedLogs = exists
+          ? state.visitorLogs.filter((log) => log.id !== newLog.id)
+          : [...state.visitorLogs, newLog];
 
-          visitorChannel.postMessage({ type: "SYNC_LOGS", logs: updatedLogs }); // 📢 broadcast
-
-          return { visitorLogs: updatedLogs };
-        }),
-      clearVisitorLogs: () => {
-        visitorChannel.postMessage({ type: "SYNC_LOGS", logs: [] }); // 📢 broadcast clearing
-        set({ visitorLogs: [] });
+        try {
+          visitorChannel.postMessage({ type: "SYNC_LOGS", logs: updatedLogs });
+          set({ visitorLogs: updatedLogs });
+        } catch (err) {
+          console.error("Failed to persist visitor logs:", err);
+          set({ visitorLogs: updatedLogs }, false); // update without persisting
+        }
       },
-      setVisitorLogs: (logs) => set({ visitorLogs: logs }), // 👈 helper for incoming sync
+      clearVisitorLogs: () => {
+        try {
+          visitorChannel.postMessage({ type: "SYNC_LOGS", logs: [] });
+          set({ visitorLogs: [] });
+        } catch (err) {
+          console.error("Failed to clear visitor logs:", err);
+          set({ visitorLogs: [] }, false);
+        }
+      },
+      setVisitorLogs: (logs) => {
+        try {
+          set({ visitorLogs: logs });
+        } catch (err) {
+          console.error("Failed to set visitor logs:", err);
+          set({ visitorLogs: logs }, false);
+        }
+      },
     }),
     {
       name: "visitor-log-storage",
@@ -43,7 +59,6 @@ export const useVisitorLogStore = create<VisitorLogStore>()(
   )
 );
 
-// 🧠 Listen globally once
 visitorChannel.onmessage = (event) => {
   const { type, logs } = event.data;
   if (type === "SYNC_LOGS") {

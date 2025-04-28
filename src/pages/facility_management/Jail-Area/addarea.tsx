@@ -159,11 +159,11 @@ const AddJailArea = ({ onClose }: { onClose: () => void }) => {
     };
 
     return (
-        <div className="mt-10">
+        <div>
             {contextHolder}
             <form onSubmit={handleJailAreaSubmit}>
                 <h1 className="text-xl font-semibold">Add Jail Area</h1>
-                <div className="flex gap-5 mt-5 w-full">
+                <div className="flex gap-5 mt=3 w-full">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 flex-1">
                         <div>
                             <p>Area Name:</p>

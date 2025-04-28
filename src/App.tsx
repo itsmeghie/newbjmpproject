@@ -76,7 +76,6 @@ import PdlRegistration from "./pages/visitor_management/pdl-data-entry/PdlRegist
 import PersonnelRegistration from "./pages/visitor_management/personnel-data-entry/PersonnelRegistration.tsx";
 import NonPdlVisitorRegistration from "./pages/visitor_management/non-pdl-visitor-data-entry/NonPdlVisitorRegistration.tsx";
 import ServiceProviderRegistration from "./pages/visitor_management/service-provider-data-entry/ServiceProviderRegistration.tsx";
-import PDLVisit from "./pages/LOG/PDLVisitor/PDLVisitors.tsx";
 import IssueType from "./pages/visitor_management/Issues/Issue-Type/IssueType.tsx";
 import IssueCategory from "./pages/visitor_management/Issues/Issue-Category/IssueCategory.tsx";
 import Risk from "./pages/visitor_management/Issues/Risk/Risk.tsx";
@@ -94,7 +93,7 @@ import Ethnicity from "./pages/maintenance/ethnicity/Ethnicity.tsx";
 import Relationship from "./pages/pdl_management/Relationship/Relationship.tsx";
 import PDLtable from "./pages/pdl_management/pdl-information/PDLs.tsx";
 import PDLVisitors from "./pages/LOG/PDLVisitor/PDLVisitors.tsx";
-import VisitorProfileSlider from "./pages/LOG/visitor-profiles/visitor-profiles/VisitorProfileSlider.tsx";
+import VisitorProfileSlider from "./pages/LOG/visitor-profiles/VisitorProfileSlider.tsx";
 
 // Lazy-loaded components
 const Home = React.lazy(() => import("./pages/dashboard/Home.tsx"));
@@ -162,11 +161,11 @@ function App() {
                     element: <JailFacility />
                 },
                 {
-                    path: "assets/annex",
+                    path: "assets/levels",
                     element: <Annex />
                 },
                 {
-                    path: "assets/levels",
+                    path: "assets/annex",
                     element: <Level />
                 },
                 {

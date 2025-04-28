@@ -9,11 +9,12 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { useTokenStore } from "@/store/useTokenStore";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { deleteEthnicity, getEthnicity } from "@/lib/queries";
+import { deleteEthnicity, getEthnicity, getUser } from "@/lib/queries";
 import { ColumnsType } from "antd/es/table";
 import { LuSearch } from "react-icons/lu";
 import { patchEthnicity } from "@/lib/query";
 import moment from "moment";
+import bjmp from '../../../assets/Logo/QCJMD.png'
 
 type EthnicityProps = {
   id: number;
@@ -32,11 +33,18 @@ const Ethnicity = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectEthnicity, setSelectedEthnicity] = useState<EthnicityProps | null>(null);
+  const [pdfDataUrl, setPdfDataUrl] = useState(null);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
   const { data } = useQuery({
     queryKey: ['ethinicity'],
     queryFn: () => getEthnicity(token ?? ""),
   });
+
+  const { data: UserData } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => getUser(token ?? "")
+})
 
   const showModal = () => setIsModalOpen(true);
   const handleCancel = () => setIsModalOpen(false);
@@ -90,6 +98,8 @@ const Ethnicity = () => {
     description: ethnicity?.description ?? 'N/A',
     updated_by: ethnicity?.updated_by ?? 'N/A',
     updated_at: moment(ethnicity?.updated_at).format('YYYY-MM-DD h:mm A') ?? 'N/A', 
+    organization: ethnicity?.organization ?? 'Bureau of Jail Management and Penology',
+    updated: `${UserData?.first_name ?? ''} ${UserData?.last_name ?? ''}`,
   })) || [];
 
   const filteredData = dataSource.filter((ethnicity) =>
@@ -155,75 +165,102 @@ const Ethnicity = () => {
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
-    let page = 1;
+    const headerHeight = 48;
+    const footerHeight = 32;
+    const organizationName = dataSource[0]?.organization || ""; 
+    const PreparedBy = dataSource[0]?.updated || ''; 
 
-    autoTable(doc, {
-      head: [['No.', 'Ethnicity', 'Description', 'Updated At', 'Updated By']],
-      body: dataSource.map(item => [item.key, item.name, item.description, item.updated_at, item.updated_by]),
-      margin: { top: 30 },
-      didDrawPage: (data) => {
-        doc.setFontSize(14);
-        doc.text("Ethnicity Report", data.settings.margin.left, 15);
+    const today = new Date();
+    const formattedDate = today.toISOString().split('T')[0];
+    const reportReferenceNo = `TAL-${formattedDate}-XXX`;
+
+    const maxRowsPerPage = 29; 
+
+    let startY = headerHeight;
+
+    const addHeader = () => {
+        const pageWidth = doc.internal.pageSize.getWidth(); 
+        const imageWidth = 30;
+        const imageHeight = 30; 
+        const margin = 10; 
+        const imageX = pageWidth - imageWidth - margin;
+        const imageY = 12;
+    
+        doc.addImage(bjmp, 'PNG', imageX, imageY, imageWidth, imageHeight);
+    
+        doc.setTextColor(0, 102, 204);
+        doc.setFontSize(16);
+        doc.text("Ethnicity Report", 10, 15); 
+        doc.setTextColor(0, 0, 0);
         doc.setFontSize(10);
-        doc.text(`Page ${page}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
-        page++;
-      }
-    });
+        doc.text(`Organization Name: ${organizationName}`, 10, 25);
+        doc.text("Report Date: " + formattedDate, 10, 30);
+        doc.text("Prepared By: " + PreparedBy, 10, 35);
+        doc.text("Department/ Unit: IT", 10, 40);
+        doc.text("Report Reference No.: " + reportReferenceNo, 10, 45);
+    };
+    
 
-    doc.save('Ethnicity_Report.pdf');
-  };
+    addHeader(); 
 
-  const handlePrintReport = () => {
-    const itemsPerPage = 40;
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const tableData = dataSource.map(item => [
+        item.key,
+        item.name,
+        item.description,
+    ]);
 
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write('<html><head><title>Ethnicity Report</title></head><body>');
-      for (let i = 0; i < totalPages; i++) {
-        const pageData = filteredData.slice(i * itemsPerPage, (i + 1) * itemsPerPage);
-        printWindow.document.write(`
-          <div style="page-break-after: always; font-family: sans-serif">
-            <h2 style="text-align:center">Ethnicity Report</h2>
-            <p>Generated on: ${new Date().toLocaleString()}</p>
-            <table border="1" cellspacing="0" cellpadding="5" style="width:100%; border-collapse: collapse;">
-              <thead>
-                <tr>
-                  <th>No.</th>
-                  <th>Ethnicity</th>
-                  <th>Description</th>
-                </tr>
-              </thead>
-              <tbody>
-        `);
-        pageData.forEach(item => {
-          printWindow?.document.write(`
-            <tr>
-              <td>${item.key}</td>
-              <td>${item.name}</td>
-              <td>${item.description}</td>
-            </tr>
-          `);
+    for (let i = 0; i < tableData.length; i += maxRowsPerPage) {
+        const pageData = tableData.slice(i, i + maxRowsPerPage);
+
+        autoTable(doc, { 
+            head: [['No.', 'Ethnicity', 'Description']],
+            body: pageData,
+            startY: startY,
+            margin: { top: 0, left: 10, right: 10 },
+            didDrawPage: function (data) {
+                if (doc.internal.getCurrentPageInfo().pageNumber > 1) {
+                    addHeader(); 
+                }
+            },
         });
 
-        printWindow.document.write(`
-              </tbody>
-            </table>
-            <div style="margin-top: 10px;">Page ${i + 1} of ${totalPages}</div>
-          </div>
-        `);
-      }
-      printWindow.document.write('</body></html>');
-      printWindow.document.close();
-      printWindow.print();
+        if (i + maxRowsPerPage < tableData.length) {
+            doc.addPage();
+            startY = headerHeight;
+        }
     }
-  };
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let page = 1; page <= pageCount; page++) {
+        doc.setPage(page);
+        const footerText = [
+            "Document Version: Version 1.0",
+            "Confidentiality Level: Internal use only",
+            "Contact Info: " + PreparedBy,
+            `Timestamp of Last Update: ${formattedDate}`
+        ].join('\n');
+        const footerX = 10;
+        const footerY = doc.internal.pageSize.height - footerHeight + 15;
+        const pageX = doc.internal.pageSize.width - doc.getTextWidth(`${page} / ${pageCount}`) - 10;
+        doc.setFontSize(8);
+        doc.text(footerText, footerX, footerY);
+        doc.text(`${page} / ${pageCount}`, pageX, footerY);
+    }
+
+    const pdfOutput = doc.output('datauristring');
+    setPdfDataUrl(pdfOutput);
+    setIsPdfModalOpen(true);
+};
+
+const handleClosePdfModal = () => {
+    setIsPdfModalOpen(false);
+    setPdfDataUrl(null); 
+};
 
   const menu = (
     <Menu>
       <Menu.Item><a onClick={handleExportExcel}>Export Excel</a></Menu.Item>
       <Menu.Item><CSVLink data={csvData} filename="Ethnicity_Report.csv">Export CSV</CSVLink></Menu.Item>
-      <Menu.Item><a onClick={handleExportPDF}>Export PDF</a></Menu.Item>
     </Menu>
   );
 
@@ -235,14 +272,16 @@ const Ethnicity = () => {
           <div className="md:text-2xl font-bold text-[#1E365D]">Filipino Ethnic Groups</div>
         </div>
         <div className="flex items-center justify-between gap-2 mt-2">
-          <div className="flex gap-2">
-            <Dropdown className="bg-[#1E365D] py-2 px-5 rounded-md text-white" overlay={menu}>
-              <a className="ant-dropdown-link gap-2 flex items-center" onClick={e => e.preventDefault()}><GoDownload /> Export</a>
-            </Dropdown>
-            <button className="bg-[#1E365D] py-2 px-5 rounded-md text-white" onClick={handlePrintReport}>
-              Print Report
-            </button>
-          </div>
+        <div className="flex gap-2">
+                        <Dropdown className="bg-[#1E365D] py-2 px-5 rounded-md text-white" overlay={menu}>
+                            <a className="ant-dropdown-link gap-2 flex items-center " onClick={e => e.preventDefault()}>
+                                <GoDownload /> Export
+                            </a>
+                        </Dropdown>
+                        <button className="bg-[#1E365D] py-2 px-5 rounded-md text-white" onClick={handleExportPDF}>
+                            Print Report
+                        </button>
+                    </div>
           <div className="flex gap-5">
             <div className="flex place-items-center">
               <input placeholder="Search" type="text" onChange={(e) => setSearchText(e.target.value)} className="border border-gray-400 h-10 w-96 rounded-md px-2"/>
@@ -255,6 +294,21 @@ const Ethnicity = () => {
           
         </div>
         <Table columns={columns} dataSource={filteredData} />
+        <Modal
+                title="Ethnicity Report"
+                open={isPdfModalOpen}
+                onCancel={handleClosePdfModal}
+                footer={null}
+                width="80%"
+            >
+                {pdfDataUrl && (
+                    <iframe
+                        src={pdfDataUrl}
+                        title="PDF Preview"
+                        style={{ width: '100%', height: '80vh', border: 'none' }}
+                    />
+                )}
+            </Modal>
         <Modal
           title="Add a Filipino Ethnic Group"
           open={isModalOpen}
