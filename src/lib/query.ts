@@ -1,5 +1,5 @@
 import { CourtBranch, CourtRecord, CrimeCategory, Ethnicities, GangAffiliation, Law, Offense, PDLtoVisit, Precinct, User, VisitorApplicationPayload, VisitorRecord } from "./definitions";
-import { PersonnelForm, Relationship, Role } from "./issues-difinitions";
+import { PersonnelForm, Relationship, Role, VisitLogForm, VisitorLogTrackingForm } from "./issues-difinitions";
 import { PDLs } from "./pdl-definitions";
 import { BASE_URL } from "./urls";
 
@@ -484,6 +484,36 @@ export async function getPermission(
     });
     if (!res.ok) {
         throw new Error("Failed to fetch Permission data.");
+    }
+    return res.json();
+}
+
+export async function getVisitLog(
+    token: string
+    ): Promise<VisitLogForm[]> {
+    const res = await fetch(`${BASE_URL}/api/visit-logs/visits/`, {
+        headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${token}`,
+        },
+    });
+    if (!res.ok) {
+        throw new Error("Failed to fetch Visit Log data.");
+    }
+    return res.json();
+}
+
+export async function getVisitorTraking(
+    token: string
+    ): Promise<VisitorLogTrackingForm[]> {
+    const res = await fetch(`${BASE_URL}/api/visit-logs/visits-tracking/`, {
+        headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${token}`,
+        },
+    });
+    if (!res.ok) {
+        throw new Error("Failed to fetch Visit Log Tracking data.");
     }
     return res.json();
 }

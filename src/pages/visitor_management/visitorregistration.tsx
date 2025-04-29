@@ -131,7 +131,7 @@ const VisitorRegistration = () => {
         record_status_id: 1,
         verified_by: 0,
         approved_by: 0,
-        pdl: [],
+        pdl_data: [],
         remarks_data: [],
         id_number: null,
     })
@@ -313,7 +313,7 @@ const VisitorRegistration = () => {
     const deletePdlToVisit = (index: number) => {
         setVisitorForm(prev => ({
             ...prev,
-            pdl: prev?.pdl?.filter((_, i) => i !== index)
+            pdl: prev?.pdl_data?.filter((_, i) => i !== index)
         }));
     };
 
@@ -569,8 +569,35 @@ const VisitorRegistration = () => {
             const id = data?.id;
 
             try {
+                // First, run visitor mutation
+                const visitorRes = await addVisitorMutation.mutateAsync(id);
+
+                // Get visitor QR from returned ID
+                const qrRes = await fetch(`${BASE_URL}/api/visitors/visitor/${visitorRes.id}/`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (!qrRes.ok) {
+                    throw new Error("Failed to fetch QR code");
+                }
+
+                const qrData = await qrRes.json();
+                const base64Image = qrData?.encrypted_id_number_qr;
+
+                // Create a download link
+                if (base64Image) {
+                    const link = document.createElement("a");
+                    link.href = base64Image;
+                    link.download = `visitor-${visitorRes.id}-qr.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+
+                // Run biometric mutations
                 await Promise.all([
-                    addVisitorMutation.mutateAsync(id),
                     ...(enrollFormFace?.upload_data ? [enrollFaceMutation.mutateAsync(id)] : []),
                     ...(enrollFormLeftIris?.upload_data ? [enrollLeftMutation.mutateAsync(id)] : []),
                     ...(enrollFormRightIris?.upload_data ? [enrollRightMutation.mutateAsync(id)] : []),
@@ -815,7 +842,7 @@ const VisitorRegistration = () => {
 
 
     // console.log(visitorForm)
-    // console.log("Person Form: ", personForm)
+    console.log("Person Form: ", personForm)
 
     return (
         <div className='bg-white rounded-md shadow border border-gray-200 py-5 px-7 w-full mb-5'>
@@ -1130,8 +1157,6 @@ const VisitorRegistration = () => {
                     municipality={municipalities || []}
                     provinces={provinces || []}
                     regions={regions || []}
-                    editAddressIndex={editAddressIndex}
-                    personForm={personForm}
                 />
             </Modal>
 
@@ -1148,8 +1173,6 @@ const VisitorRegistration = () => {
                 <ContactForm
                     setPersonForm={setPersonForm}
                     handleContactCancel={handleContactCancel}
-                    editContactIndex={editContactIndex}
-                    personForm={personForm}
                 />
             </Modal>
 

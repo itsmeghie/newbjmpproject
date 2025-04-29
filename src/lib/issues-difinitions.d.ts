@@ -366,3 +366,15 @@ export interface Permission {
   codename: string;  
   content_type: number; 
 }
+
+interface VisitLogForm {
+  id: number;
+  device: string;
+  record_status: string;
+  created_at: string; 
+  updated_at: string; 
+  id_number: string;
+  binary_data: string;
+  created_by: number;
+  updated_by: number;
+}
