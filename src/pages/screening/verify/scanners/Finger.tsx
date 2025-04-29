@@ -14,11 +14,12 @@ import { BASE_URL } from '@/lib/urls'
 import { Device } from '@/lib/definitions'
 
 type Props = {
-    devices: Device[],
-    deviceLoading: boolean
+    devices: Device[];
+    deviceLoading: boolean;
+    selectedArea: string;
 }
 
-const Finger = ({ deviceLoading, devices }: Props) => {
+const Finger = ({ deviceLoading, devices, selectedArea }: Props) => {
     const [lastScanned, setLastScanned] = useState<any | null>(null);
     const token = useTokenStore()?.token;
     const addOrRemoveVisitorLog = useVisitorLogStore((state) => state.addOrRemoveVisitorLog);
@@ -135,6 +136,11 @@ const Finger = ({ deviceLoading, devices }: Props) => {
     });
 
     const handleVerifyFingerprints = () => {
+        if (!selectedDeviceId) {
+            message.warning("Please select a device.");
+            return;
+        }
+
         const leftFingers = LeftFingerResponse?.CapturedFingers || [];
         const rightFingers = RightFingerResponse?.CapturedFingers || [];
         const thumbFingers = ThumbFingerResponse?.CapturedFingers || [];
@@ -176,91 +182,129 @@ const Finger = ({ deviceLoading, devices }: Props) => {
         }
     }
 
-    console.log(fingerprintVerificationResult?.[0]?.data?.[0]?.biometric?.person_data?.visitor?.id_number)
-
     useEffect(() => {
         const fetchVisitorLog = async () => {
-            const idNumber = fingerprintVerificationResult?.[0]?.data?.[0]?.biometric?.person_data?.visitor?.id_number;
-
-            if (!idNumber) {
-                message.warning("No ID number found for visitor.");
-                return;
-            }
-
             setIsFetching(true);
             setError(null);
 
+            const isPDLStation = selectedArea?.toLowerCase() === "pdl station";
+
             try {
-                // First API call - GET visitor log
-                const res = await fetch(`${BASE_URL}/api/visit-logs/visitor-specific/?id_number=${fingerprintVerificationResult?.[0]?.data?.[0]?.biometric?.person_data?.visitor?.id_number}`, {
-                    method: 'get',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Token ${token}`
-                    },
-                });
+                let id_number: string | null = null;
+                let binary_data: string | null = null;
+                let person_id: string | null = null;
 
-                if (!res.ok) {
-                    throw new Error(`Failed to fetch visitor log. Status: ${res.status}`);
-                }
+                if (isPDLStation) {
+                    person_id = fingerprintVerificationResult?.[0]?.data?.[0]?.biometric?.person_data?.id;
 
-                const data = await res.json();
+                    if (!person_id) {
+                        if (fingerprintVerificationResult) {
+                            message.warning("No person ID found.");
+                        }
+                        return;
+                    }
+                } else {
+                    id_number = fingerprintVerificationResult?.[0]?.data?.[0]?.biometric?.person_data?.visitor?.id_number;
+                    person_id = fingerprintVerificationResult?.[0]?.data?.[0]?.biometric?.person_data?.id;
 
-                // Store and display the visitor data
-                addOrRemoveVisitorLog(data);
-                setLastScanned(data);
+                    if (!id_number) {
+                        message.warning("No ID number found for visitor.");
+                        return;
+                    }
 
-                // Second API call - POST to visits endpoint
-                if (data && selectedDeviceId) {
-                    const postRes = await fetch(`${BASE_URL}/api/visit-logs/visits/`, {
-                        method: 'post',
+                    const res = await fetch(`${BASE_URL}/api/visit-logs/visitor-specific/?id_number=${id_number}`, {
+                        method: 'GET',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Token ${token}`
                         },
-                        body: JSON.stringify({
-                            device_id: selectedDeviceId,
-                            id_number: data.id_number,
-                            binary_data: data.encrypted_id_number_qr
-                        })
                     });
 
-                    if (!postRes.ok) {
-                        throw new Error(`Failed to log visit. Status: ${postRes.status}`);
+                    if (!res.ok) {
+                        throw new Error(`Failed to fetch visitor log. Status: ${res.status}`);
                     }
 
-                    const visitLogResponse = await postRes.json();
-                    message.success("Visit logged successfully!");
+                    const data = await res.json();
+                    id_number = data.id_number;
+                    binary_data = data.encrypted_id_number_qr;
 
-                    // Third API call - POST to visits-tracking endpoint
-                    if (visitLogResponse?.id) {
-                        const trackingRes = await fetch(`${BASE_URL}/api/visit-logs/visits-tracking/`, {
-                            method: 'post',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Token ${token}`
-                            },
-                            body: JSON.stringify({
-                                visit_id: visitLogResponse.id
-                            })
-                        });
-
-                        if (!trackingRes.ok) {
-                            throw new Error(`Failed to log visit tracking. Status: ${trackingRes.status}`);
-                        }
-
-                        // const trackingResponse = await trackingRes.json();
-                        message.success("Visit tracking created successfully!");
-                        message.success("Process Complete!");
-                    } else {
-                        message.warning("Missing visit ID for tracking");
+                    if (selectedArea === "Main Gate") {
+                        addOrRemoveVisitorLog(data);
                     }
-                } else {
+                    setLastScanned(data);
+                }
+
+                // URLs
+                let visitsUrl = "";
+                let trackingUrl = "";
+
+                switch (selectedArea?.toLowerCase()) {
+                    case "main gate":
+                        visitsUrl = `${BASE_URL}/api/visit-logs/main-gate-visits/`;
+                        trackingUrl = `${BASE_URL}/api/visit-logs/main-gate-tracking/`;
+                        break;
+                    case "visitor station":
+                        visitsUrl = `${BASE_URL}/api/visit-logs/visitor-station-visits/`;
+                        trackingUrl = `${BASE_URL}/api/visit-logs/visitor-station-tracking/`;
+                        break;
+                    case "pdl station":
+                        visitsUrl = `${BASE_URL}/api/visit-logs/pdl-station-visits/`;
+                        trackingUrl = `${BASE_URL}/api/visit-logs/pdl-station-tracking/`;
+                        break;
+                    default:
+                        message.error("Unknown area. Cannot post visit.");
+                        return;
+                }
+
+                // POST visit log
+                const visitBody = isPDLStation
+                    ? { device_id: selectedDeviceId, person_id }
+                    : { device_id: selectedDeviceId, id_number, binary_data, person_id };
+
+                if (!selectedDeviceId) {
                     message.warning("Please select a device.");
+                    return;
+                }
+
+                const postRes = await fetch(visitsUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`
+                    },
+                    body: JSON.stringify(visitBody)
+                });
+
+                if (!postRes.ok) {
+                    throw new Error(`Failed to log visit. Status: ${postRes.status}`);
+                }
+
+                const visitLogResponse = await postRes.json();
+                message.success("Visit logged successfully!");
+
+                // POST visit tracking
+                if (visitLogResponse?.id) {
+                    const trackingRes = await fetch(trackingUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Token ${token}`
+                        },
+                        body: JSON.stringify({ visit_id: visitLogResponse.id })
+                    });
+
+                    if (!trackingRes.ok) {
+                        throw new Error(`Failed to log visit tracking. Status: ${trackingRes.status}`);
+                    }
+
+                    message.success("Visit tracking created successfully!");
+                    message.success("Process Complete!");
+                } else {
+                    message.warning("Missing visit ID for tracking");
                 }
 
             } catch (err: any) {
-                message.warning("No id number provided.")
+                message.warning(isPDLStation ? "No person ID provided." : "No ID number provided.");
                 message.error(`Error: ${err.message}`);
                 setError(err);
             } finally {
@@ -269,7 +313,8 @@ const Finger = ({ deviceLoading, devices }: Props) => {
         };
 
         fetchVisitorLog();
-    }, [token, addOrRemoveVisitorLog, setLastScanned, selectedDeviceId, fingerprintVerificationResult]);
+    }, [token, addOrRemoveVisitorLog, setLastScanned, selectedDeviceId, fingerprintVerificationResult, selectedArea]);
+
 
     if (isFetching) {
         message.info("Processing scan...");
@@ -423,7 +468,14 @@ const Finger = ({ deviceLoading, devices }: Props) => {
                                         {
                                             fingerScannerReady ? (
                                                 <button
-                                                    onClick={() => fingerScannerCaptureMutation.mutate()}
+                                                    onClick={() => {
+                                                        if (!selectedDeviceId) {
+                                                            message.warning("Please select a device.")
+                                                            return
+                                                        }
+
+                                                        fingerScannerCaptureMutation.mutate()
+                                                    }}
                                                     type="button"
                                                     className="bg-[#1976D2] text-white px-10 py-2 rounded-md">
                                                     Start Capture
@@ -583,42 +635,83 @@ const Finger = ({ deviceLoading, devices }: Props) => {
                         )
                     }
                 </div>
-                <div className='flex-1'>
-                    <div className="flex flex-col items-center justify-center">
-                        <div className="w-full flex items-center justify-center flex-col gap-10">
-                            <div className="w-[60%] rounded-md overflow-hidden object-cover">
-                                <img src={imageSrc || noImg} alt="Image of a person" className="w-full" />
-                            </div>
-                            <h1 className="text-4xl">{`${lastScanned?.person?.first_name ?? ""} ${lastScanned?.person?.last_name ?? ""}`}</h1>
-                        </div>
-                        {
-                            lastScanned && (
-                                <div className="w-full flex items-center justify-center">
-                                    <div className="w-[80%] text-4xl flex">
-                                        <div className="flex items-center justify-between w-full">
-                                            <div className="flex-[4] flex gap-8">
+                {
+                    selectedArea?.toLowerCase() === "pdl station" ? (
+                        <div className='flex-1'>
+                            <div className="flex flex-col items-center justify-center">
+                                <div className="w-full flex items-center justify-center flex-col gap-10">
+                                    <div className="w-[60%] rounded-md overflow-hidden object-cover">
+                                        <img src={`data:image/jpeg;base64,${fingerprintVerificationResult?.[0]?.data?.[0]?.additional_biometrics?.find((bio: { position: string }) => bio?.position === "face")?.data}`} alt="Image of a person" className="w-full" />
+                                    </div>
+                                    <h1 className="text-4xl">{`${fingerprintVerificationResult?.[0]?.data?.[0]?.biometric?.person_data?.first_name ?? ""} ${fingerprintVerificationResult?.[0]?.data?.[0]?.biometric?.person_data?.middle_name ?? ""} ${fingerprintVerificationResult?.[0]?.data?.[0]?.biometric?.person_data?.last_name ?? ""}`}</h1>
+                                </div>
+                                {
+                                    lastScanned && (
+                                        <div className="w-full flex items-center justify-center">
+                                            <div className="w-[80%] text-4xl flex">
+                                                <div className="flex items-center justify-between w-full">
+                                                    <div className="flex-[4] flex gap-8">
 
-                                                <>
-                                                    <span>STATUS:</span>
-                                                    <span>ALLOWED VISIT</span>
-                                                </>
+                                                        <>
+                                                            <span>STATUS:</span>
+                                                            <span>ALLOWED VISIT</span>
+                                                        </>
 
-                                            </div>
-                                            <div className="flex justify-end flex-1 gap-4">
-                                                <div className="w-16">
-                                                    <img src={check} alt="check icon" />
-                                                </div>
-                                                <div className="w-16">
-                                                    <img src={ex} alt="close icon" />
+                                                    </div>
+                                                    <div className="flex justify-end flex-1 gap-4">
+                                                        <div className="w-16">
+                                                            <img src={check} alt="check icon" />
+                                                        </div>
+                                                        <div className="w-16">
+                                                            <img src={ex} alt="close icon" />
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
+                                    )
+                                }
+                            </div>
+                        </div>
+                    ) : (
+                        <div className='flex-1'>
+                            <div className="flex flex-col items-center justify-center">
+                                <div className="w-full flex items-center justify-center flex-col gap-10">
+                                    <div className="w-[60%] rounded-md overflow-hidden object-cover">
+                                        <img src={imageSrc || noImg} alt="Image of a person" className="w-full" />
                                     </div>
+                                    <h1 className="text-4xl">{`${lastScanned?.person?.first_name ?? ""} ${lastScanned?.person?.last_name ?? ""}`}</h1>
                                 </div>
-                            )
-                        }
-                    </div>
-                </div>
+                                {
+                                    lastScanned && (
+                                        <div className="w-full flex items-center justify-center">
+                                            <div className="w-[80%] text-4xl flex">
+                                                <div className="flex items-center justify-between w-full">
+                                                    <div className="flex-[4] flex gap-8">
+
+                                                        <>
+                                                            <span>STATUS:</span>
+                                                            <span>ALLOWED VISIT</span>
+                                                        </>
+
+                                                    </div>
+                                                    <div className="flex justify-end flex-1 gap-4">
+                                                        <div className="w-16">
+                                                            <img src={check} alt="check icon" />
+                                                        </div>
+                                                        <div className="w-16">
+                                                            <img src={ex} alt="close icon" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                }
+                            </div>
+                        </div>
+                    )
+                }
             </div>
             <div className="w-full flex gap-3 items-center">
                 <span className="font-semibold">DEVICE ID:</span>

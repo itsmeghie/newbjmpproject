@@ -5,7 +5,7 @@ import { message, Table, Modal, Button, Image, Form, Input, Select, Menu, Dropdo
 import Fuse from "fuse.js";
 import { useState } from "react"
 import { ColumnsType } from "antd/es/table"
-import { VisitorApplicationPayload, VisitorRecord } from "@/lib/definitions"
+import { VisitorRecord } from "@/lib/definitions"
 import { calculateAge } from "@/functions/calculateAge"
 import { CSVLink } from "react-csv";
 import jsPDF from "jspdf";
@@ -18,6 +18,10 @@ import { patchVisitor } from "@/lib/query";
 import html2canvas from 'html2canvas';
 import { GoDownload } from "react-icons/go";
 import bjmp from '../../assets/Logo/QCJMD.png'
+import { VisitorApplicationPayload } from "@/lib/issues-difinitions";
+import VisitorProfile from "./visitor-data-entry/visitorprofile";
+import { PersonForm, VisitorForm } from "@/lib/visitorFormDefinition";
+import EditVisitor from "./EditVisitor.tsx/EditVisitor";
 
 type Visitor = VisitorRecord;
 
@@ -31,10 +35,9 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
     const queryClient = useQueryClient();
     const token = useTokenStore().token;
     const modalContentRef = useRef<HTMLDivElement>(null);
-    const [form] = Form.useForm();
     const [messageApi, contextHolder] = message.useMessage();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [selectEditVisitor, setEditSelectedVisitor] = useState<VisitorApplicationPayload | null>(null);
+    const [selectEditVisitor, setEditSelectedVisitor] = useState<Visitor | null>(null);
     const [pdfDataUrl, setPdfDataUrl] = useState(null);
     const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
@@ -56,6 +59,7 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
         queryFn: () => getUser(token ?? "")
     })
 
+
     const deleteMutation = useMutation({
         mutationFn: (id: number) => deleteVisitors(token ?? "", id),
         onSuccess: () => {
@@ -66,37 +70,6 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
             messageApi.error(error.message || "Failed to delete Visitor");
         },
     });
-
-    const { mutate: editVisitor, isLoading: isUpdating } = useMutation({
-        mutationFn: (updated: VisitorApplicationPayload) =>
-            patchVisitor(token ?? "", updated.id, updated),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["visitor"] });
-            messageApi.success("Visitor updated successfully");
-            setIsEditModalOpen(false);
-        },
-        onError: () => {
-            messageApi.error("Failed to update Visitor");
-        },
-    });
-
-    const handleEdit = (record: VisitorApplicationPayload) => {
-        setEditSelectedVisitor(record);
-        form.setFieldsValue(record);
-        setIsEditModalOpen(true);
-    };
-
-    const handleUpdate = (values: any) => {
-        if (selectEditVisitor && selectEditVisitor.id) {
-            const updatedVisitor: VisitorApplicationPayload = {
-                ...selectEditVisitor,
-                ...values,
-            };
-            editVisitor(updatedVisitor);
-        } else {
-            messageApi.error("Selected Visitor is invalid");
-        }
-    };
 
     const leftSideImage = selectedVisitor?.person?.media?.find(
         (m: any) => m.picture_view === "Left"
@@ -132,8 +105,10 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
     const dataSource = data?.map((visitor, index) => ({
         ...visitor,
         key: index + 1,
+        visitor_reg_no: visitor?.visitor_reg_no,
+        visitor_type: visitor?.visitor_type,
+        nationality: visitor?.person?.nationality,
         organization: visitor?.organization ?? 'Bureau of Jail Management and Penology',
-        name: `${visitor?.person?.first_name ?? 'N/A'} ${visitor?.person?.middle_name ?? ''} ${visitor?.person?.last_name ?? 'N/A'}`.trim(),
         updated: `${UserData?.first_name ?? ''} ${UserData?.last_name ?? ''}`,
     })) || [];
     
@@ -185,7 +160,8 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
                         type="link"
                         onClick={(e) => {
                             e.stopPropagation();
-                            handleEdit(record);
+                            setEditSelectedVisitor(record);
+                            setIsEditModalOpen(true);
                         }}
                     >
                         <AiOutlineEdit />
@@ -268,14 +244,17 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
     
         addHeader(); 
     
-        const tableData = dataSource.map(item => [
-            item.key,
-            item.visitor_reg_no,
-            item.name,
-            item.visitor_type,
-            item.approved_by,
-        ]);
-    
+        const tableData = dataSource.map((item, index) => {
+            const fullName = `${item?.person?.first_name ?? 'N/A'} ${item?.person?.middle_name ?? ''} ${item?.person?.last_name ?? 'N/A'}`.trim();
+            return [
+                index + 1,
+                item.visitor_reg_no,
+                fullName,
+                item.visitor_type,
+                item.approved_by,
+            ];
+        });
+        
         for (let i = 0; i < tableData.length; i += maxRowsPerPage) {
             const pageData = tableData.slice(i, i + maxRowsPerPage);
     
@@ -343,60 +322,41 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
             </Menu.Item>
         </Menu>
     );
-
-    const results = useQueries({
-        queries: [
-            {
-                queryKey: ['visitor-type'],
-                queryFn: () => getVisitor_Type(token ?? "")
-            },
-        ]
-    });
-
-    const visitorTypeData = results[0].data;
     
-    const onVisitorTypeChange = (value: number) => {
-        setEditSelectedVisitor(prevForm => ({
-            ...prevForm,
-            visitor_type_id: value
-        }));
-    };
-
     const handleDownloadPDF = async () => {
         if (!modalContentRef.current) return;
-    
-        const canvas = await html2canvas(modalContentRef.current, {
-            scale: 2,
+        
+            const canvas = await html2canvas(modalContentRef.current, {
             useCORS: true,
             backgroundColor: "#ffffff",
             scrollY: -window.scrollY,
-        });
-    
-        const imgData = canvas.toDataURL("image/png");
-    
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-    
-        const imgProps = pdf.getImageProperties(imgData);
-        const imgWidth = pdfWidth;
-        const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-    
-        let heightLeft = imgHeight;
-        let position = 0;
-    
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight;
-    
-        while (heightLeft > 0) {
-            position = heightLeft - imgHeight;
-            pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pdfHeight;
-        }
-    
-        pdf.save('visitor-profile.pdf');
-    };
+            });
+        
+            const imgData = canvas.toDataURL("image/png");
+        
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+        
+            const imgProps = pdf.getImageProperties(imgData);
+            const imgWidth = pdfWidth;
+            const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+        
+            let finalImgHeight = imgHeight;
+            let finalImgWidth = imgWidth;
+        
+            if (imgHeight > pdfHeight) {
+            const scaleRatio = pdfHeight / imgHeight;
+            finalImgHeight = pdfHeight;
+            finalImgWidth = imgWidth * scaleRatio;
+            }
+        
+            const x = (pdfWidth - finalImgWidth) / 2;
+            const y = 0; 
+        
+            pdf.addImage(imgData, 'PNG', x, y, finalImgWidth, finalImgHeight);
+            pdf.save('visitor-profile.pdf');
+        };
     return (
         <div>
             <div className="h-[90vh] flex flex-col">
@@ -774,42 +734,17 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
                     </div>
                 )}
             </Modal>
-
             <Modal
-    open={isEditModalOpen}
-    title="Edit Visitor Information"
-    onCancel={() => setIsEditModalOpen(false)}
-    onOk={() => form.submit()}
-    confirmLoading={isUpdating}
->
-    <Form
-        form={form}
-        layout="vertical"
-        onFinish={handleUpdate}
-    >
-        <Form.Item label="First Name" name={['person', 'first_name']}>
-            <Input />
-        </Form.Item>
-        <Form.Item label="Middle Name" name={['person', 'middle_name']}>
-            <Input />
-        </Form.Item>
-        <Form.Item label="Last Name" name={['person', 'last_name']}>
-            <Input />
-        </Form.Item>
-        <Form.Item label="Visitor Type" name="visitor_type">
-            <Select className="h-[3rem] w-full"
-                showSearch
-                placeholder="Visitor Type"
-                optionFilterProp="label"
-                onChange={onVisitorTypeChange}
-                options={visitorTypeData?.map(visitor_type => ({
-                    value: visitor_type.id,
-                    label: visitor_type?.visitor_type
-                }))}/>
-        </Form.Item>
-    </Form>
-</Modal>
-
+                title="Edit Visitor Type"
+                open={isEditModalOpen}
+                onCancel={() => setIsEditModalOpen(false)}
+                footer={null}
+            >
+                <EditVisitor
+                    visitor={selectEditVisitor}
+                    onClose={() => setIsEditModalOpen(false)}
+                />
+            </Modal>
         </div>
     );
 };

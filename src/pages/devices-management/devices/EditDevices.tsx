@@ -62,12 +62,12 @@ const EditDevices = ({ devices, onClose }: { devices: any; onClose: () => void }
                 device_name: devices.device_name,
                 description: devices.description,
                 serial_no: devices.serial_no,
-                date_acquired: devices.date_acquired || "", // Ensure it's a string
+                date_acquired: devices.date_acquired || "", 
                 manufacturer: devices.manufacturer,
                 supplier: devices.supplier,
             };
             
-            form.setFieldsValue(initialValues); // Set form values
+            form.setFieldsValue(initialValues);
         }
     }, [devices, form]);
 
@@ -97,7 +97,7 @@ const EditDevices = ({ devices, onClose }: { devices: any; onClose: () => void }
                     device_name: devices?.device_name ?? "",
                     description: devices?.description ?? "",
                     serial_no: devices?.serial_no ?? "",
-                    date_acquired: devices?.date_acquired || "", // Ensure correct format
+                    date_acquired: devices?.date_acquired || "",
                     manufacturer: devices?.manufacturer ?? "",
                     supplier: devices?.supplier ?? "",
                 }}

@@ -378,3 +378,270 @@ interface VisitLogForm {
   created_by: number;
   updated_by: number;
 }
+export interface VisitorApplicationPayload {
+  id: number;
+  created_by: string;
+  updated_by: string;
+  biometric_status: string;
+  gender: {
+    id: number;
+    gender_option: string;
+    description: string;
+  };
+  nationality: string;
+  civil_status: string;
+  record_status: string;
+  addresses: Address[];
+  contacts: Contact[];
+  talents: Talent[];
+  skills: Skill[];
+  religion: Religion;
+  interests: Interest[];
+  identifiers: Identifier[];
+  employment_histories: EmploymentHistory[];
+  education_backgrounds: EducationBackground[];
+  social_media_accounts: SocialMediaAccount[];
+  affiliations: Affiliation[];
+  diagnoses: Diagnosis[];
+  media_requirements: MediaRequirement[];
+  media_identifiers: MediaIdentifier[];
+  multiple_birth_siblings: MultipleBirthSibling[];
+  created_at: string;
+  updated_at: string;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  shortname: string;
+  date_of_birth: string;
+  place_of_birth: string;
+  object_ref_no2: string;
+  prefix: number;
+  suffix: number;
+  object_ref_no: number;
+  ethnicity_province: number;
+  interest: number[];
+  skill: number[];
+  talent: number[];
+}
+
+interface Address {
+  id: number;
+  created_by: string;
+  updated_by: string;
+  record_status: string;
+  province: string;
+  municipality: string;
+  region: string;
+  barangay: string;
+  country: string;
+  address_type: string;
+  created_at: string;
+  updated_at: string;
+  type: string;
+  street: string;
+  postal_code: string;
+  is_current: boolean;
+  is_active: boolean;
+  street_number: string;
+  bldg_subdivision: string;
+  latitude: string;
+  longitude: string;
+  remarks: string;
+  person: number;
+}
+
+interface Contact {
+  id: number;
+  created_by: string;
+  updated_by: string;
+  record_status: string;
+  created_at: string;
+  updated_at: string;
+  type: string;
+  value: string;
+  is_primary: boolean;
+  mobile_imei: string;
+  remarks: string;
+  contact_status: boolean;
+  person: number;
+}
+
+interface Talent {
+  id: number;
+  name: string;
+  description: string;
+  record_status: string;
+}
+
+interface Skill {
+  id: number;
+  name: string;
+  description: string;
+  record_status: string;
+}
+
+interface Religion {
+  id: number;
+  name: string;
+  description: string;
+  record_status: string;
+}
+
+interface Interest {
+  id: number;
+  name: string;
+  description: string;
+  record_status: string;
+}
+
+interface Identifier {
+  id: number;
+  id_type: string;
+  id_number: string;
+  issued_by: string;
+  date_issued: string;
+  expiry_date: string;
+  place_issued: string;
+  record_status: string;
+}
+
+interface EmploymentHistory {
+  id: number;
+  employer_name: string;
+  job_title: string;
+  employment_type: string;
+  start_date: string;
+  end_date: string;
+  location: string;
+  responsibilities: string;
+  record_status: string;
+}
+
+interface EducationBackground {
+  id: number;
+  created_by: string;
+  updated_by: string;
+  educational_attainment: string;
+  record_status: string;
+  created_at: string;
+  updated_at: string;
+  institution_name: string;
+  degree: string;
+  field_of_study: string;
+  start_year: string;
+  end_year: string;
+  institution_address: string;
+  honors_received: string;
+  remarks: string;
+  person: number;
+}
+
+interface SocialMediaAccount {
+  id: number;
+  platform: string;
+  handle: string;
+  profile_url: string;
+  is_primary_account: boolean;
+  record_status: string;
+}
+
+interface Affiliation {
+  id: number;
+  organization_name: string;
+  role_or_position: string;
+  start_date: string;
+  end_date: string;
+  affiliation_type: string;
+  description: string;
+  record_status: string;
+  person: number;
+}
+
+interface Diagnosis {
+  id: number;
+  health_condition: string;
+  health_condition_category: string;
+  diagnosis_date: string;
+  description: string;
+  treatment_plan: string;
+  record_status: string;
+}
+
+interface MediaRequirement {
+  id: number;
+  record_status: string;
+  created_at: string;
+  updated_at: string;
+  object_ref_no: string;
+  name: string;
+  direct_image: string;
+  issued_by: string;
+  date_issued: string;
+  expiry_date: string;
+  place_issued: string;
+  remarks: string;
+  status: string;
+  created_by: number;
+  updated_by: number;
+  person: number;
+}
+
+interface MediaIdentifier {
+  id: number;
+  id_type: string;
+  record_status: string;
+  created_at: string;
+  updated_at: string;
+  object_ref_no: string;
+  id_number: string;
+  direct_image: string;
+  issued_by: string;
+  date_issued: string;
+  expiry_date: string;
+  place_issued: string;
+  remarks: string;
+  status: string;
+  created_by: number;
+  updated_by: number;
+  idtype: number;
+  person: number;
+}
+
+interface MultipleBirthSibling {
+  id: number;
+  created_by: string;
+  updated_by: string;
+  person: string;
+  multiple_birth_class: string;
+  record_status: string;
+  created_at: string;
+  updated_at: string;
+  is_identical: boolean;
+  is_verified: boolean;
+  remarks: string;
+}
+
+export interface TrackingLog {
+  id: number;
+  created_by: string;
+  updated_by: string;
+  visit: string;
+  record_status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MainGateLog {
+  id: number;
+  created_by: string;
+  updated_by: string;
+  device: string;
+  record_status: string;
+  tracking_logs: TrackingLog[];
+  visitor: Visitors[];
+  created_at: string;
+  updated_at: string;
+  id_number: string;
+  binary_data: string;
+  person: number;
+}

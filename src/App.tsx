@@ -95,10 +95,12 @@ import PDLtable from "./pages/pdl_management/pdl-information/PDLs.tsx";
 import PDLVisitors from "./pages/LOG/PDLVisitor/PDLVisitors.tsx";
 import VisitorProfileSlider from "./pages/LOG/visitor-profiles/VisitorProfileSlider.tsx";
 import Verify from "./pages/screening/verify/Verify.tsx";
+import OTP from "./pages/User_Management/OTP/OTP.tsx";
+import LoginOTP from "./pages/LoginOTP.tsx";
 
 // Lazy-loaded components
 const Home = React.lazy(() => import("./pages/dashboard/Home.tsx"));
-const Login = React.lazy(() => import("./pages/Login"));
+/*const Login = React.lazy(() => import("./pages/Login")); */
 const RootLayout = React.lazy(() => import("./layout/RootLayout"));
 
 function App() {
@@ -111,7 +113,7 @@ function App() {
         },
         {
             path: "/login",
-            element: <Login />,
+            element: <LoginOTP />,
         },
         {
             path: "/",
@@ -284,6 +286,10 @@ function App() {
                 {
                     path: "users/role-levels",
                     element: <RoleLevel />
+                },
+                {
+                    path: "users/user-otp-account",
+                    element: <OTP/>
                 },
                 {
                     path: "tools",

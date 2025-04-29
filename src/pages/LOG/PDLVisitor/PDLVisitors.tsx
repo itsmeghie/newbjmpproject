@@ -1,168 +1,189 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Table, Input, message } from "antd";
-import type { ColumnsType } from "antd/es/table";
+import { getMainGate, getPDLStation } from "@/lib/query";
 import { useTokenStore } from "@/store/useTokenStore";
-import { getVisitorSpecific } from "@/lib/queries";
-import moment from "moment";
-import noimg from '../../../../public/noimg.png'
+import { useQuery } from "@tanstack/react-query";
+import { ColumnsType } from "antd/es/table";
+import { Image, Input, Table } from "antd";
+import { useState } from "react";
+import noimg from "../../../../public/noimg.png";
+import { MainGateLog } from "@/lib/issues-difinitions";
 
 const PDLVisitors = () => {
     const [searchText, setSearchText] = useState("");
     const token = useTokenStore().token;
-    const [messageApi, contextHolder] = message.useMessage();
 
-    const { data } = useQuery({
-        queryKey: ['visitor'],
-        queryFn: async () => {
-            try {
-                return await getVisitorSpecific(token ?? "");
-            } catch (error) {
-                console.error("Error fetching visitor data:", error);
-                return [];
-            }
-        },
-        retry: false,
+    const { data: visitLogData } = useQuery({
+        queryKey: ["pdl-station"],
+        queryFn: () => getPDLStation(token ?? ""),
+        refetchInterval: 60000, 
     });
-    const dataSource = data?.map((visitor, index) => ({
-        ...visitor,
-        key: index + 1,
-        timestamp: moment(visitor?.created_at).format("YYYY-MM-DD hh:mm A"),
-    })) || [];
 
-    const filteredData = dataSource.filter((item: any) =>
-        Object.values(item).some((value) =>
+
+    const dataSource: MainGateLog[] = visitLogData?.map((pdlstation, index) => {
+
+        const profileImage = pdlstation?.visitor?.person?.media?.find(
+            (m: any) => m.picture_view === "Front"
+        );
+
+        const pdlImage = pdlstation?.visitor?.pdls[0]?.pdl.person?.media?.find(
+            (m: any) => m.picture_view === "Front"
+        );
+
+        return {
+            key: index + 1,
+            id: pdlstation?.id ?? "N/A",
+            timestamp: pdlstation?.tracking_logs?.[0]?.created_at ?? '',
+            visitor: pdlstation?.person,
+            visitorPhoto: profileImage
+                    ? {
+                        media_binary: profileImage.media_binary,
+                        media_filepath: profileImage.media_filepath,
+                    }
+                    : null,
+            pdlPhoto: pdlImage
+                    ? {
+                        media_binary: pdlImage.media_binary,
+                        media_filepath: pdlImage.media_filepath,
+                    }
+                    : null,
+            visitorType: pdlstation?.visitor?.visitor_type ?? "",
+            pdlName: pdlstation
+                    ? `${pdlstation.visitor?.pdls[0]?.pdl.person?.first_name || ''} ${pdlstation.visitor?.pdls[0]?.pdl.person.last_name || ''}`
+                    : "",
+            relationshipToPDL: pdlstation?.visitor?.pdls[0]?.relationship_to_pdl || "No PDL relationship",
+            level: pdlstation?.visitor?.pdls?.[0]?.pdl.cell.cell_name,
+            annex: pdlstation?.visitor?.pdls?.[0]?.pdl?.cell?.floor?.split("(")[1]?.replace(")", ""),
+            dorm: pdlstation?.visitor?.pdls?.[0]?.pdl?.cell?.floor,
+        }
+    }) || [];
+
+    const filteredData = dataSource.filter((visit) =>
+        Object.values(visit).some((value) =>
             String(value).toLowerCase().includes(searchText.toLowerCase())
         )
     );
 
-    const columns: ColumnsType<any> = [
+    const columns: ColumnsType<MainGateLog> = [
+        {
+            title: "No.",
+            dataIndex: "key",
+            key: "key",
+        },
         {
             title: "Timestamp",
             dataIndex: "timestamp",
             key: "timestamp",
+            render: (text) => new Date(text).toLocaleString(),
         },
         {
             title: "Visitor Name",
-            key: "name",
-            render: (_, visitor) => (
-                `${visitor?.person?.first_name ?? 'N/A'} ${visitor?.person?.middle_name ?? ''} ${visitor?.person?.last_name ?? 'N/A'}`.trim()
-            ),
+            dataIndex: "visitor",
+            key: "visitor",
         },
         {
             title: "Visitor Type",
-            key: "visitor_type",
-            render: (_, visitor) => (
-                `${visitor?.visitor_type ?? 'N/A'}`
-            )
+            dataIndex: "visitorType",
+            key: "visitorType",
         },
         {
             title: "Visitor Photo",
-            key: "media_binary",
-            render: (_, visitor) => {
-                const profileImage = visitor?.person?.media?.find(
-                    (m: any) =>
-                        m.picture_view === "Front"
-                );
-        
-                return profileImage?.media_binary ? (
-                    <img
-                        src={`data:image/bmp;base64,${profileImage.media_binary}`}
-                        alt="Profile Picture"
-                        className="w-14 h-14 object-cover rounded-md"
-                    />
-                ) : (
-                    <img
-                        src={noimg}
-                        alt="No Image"
-                        className="w-14 h-14 object-contain p-2 bg-gray-100 rounded-md"
-                    />
-                );
-            }
-        },        
+            dataIndex: "visitorPhoto",
+            key: "visitorPhoto",
+            render: (photo) => (
+                <div className="w-[90px] h-[90px] rounded-xl overflow-hidden flex items-center justify-center">
+                    {photo?.media_binary ? (
+                        <Image
+                            src={`data:image/bmp;base64,${photo.media_binary}`}
+                            alt="Visitor"
+                            className="w-full h-full object-cover"
+                        />
+                    ) : photo?.media_filepath ? (
+                        <Image
+                            src={photo.media_filepath}
+                            alt="Visitor"
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <img
+                            src={noimg}
+                            alt="No Image"
+                            className="w-2/3 h-2/3 object-contain p-2 bg-gray-100 rounded-lg"
+                        />
+                    )}
+                </div>
+            ),
+        },
         {
             title: "PDL Photo",
-            key: "media_binary",
-            render: (_, visitor) => {
-                const profileImage = visitor?.pdls?.[0]?.pdl.person?.media?.find(
-                    (m: any) =>
-                        m.picture_view === "Front"
-                );
-        
-                return profileImage?.media_binary ? (
-                    <img
-                        src={`data:image/bmp;base64,${profileImage.media_binary}`}
-                        alt="Profile Picture"
-                        className="w-14 h-14 object-cover rounded-md"
-                    />
-                ) : (
-                    <img
-                        src={noimg}
-                        alt="No Image"
-                        className="w-14 h-14 object-contain p-2 bg-gray-100 rounded-md"
-                    />
-                );
-            }
+            dataIndex: "pdlPhoto",
+            key: "pdlPhoto",
+            render: (photo) => (
+                <div className="w-[90px] h-[90px] rounded-xl overflow-hidden flex items-center justify-center">
+                    {photo?.media_binary ? (
+                        <Image
+                            src={`data:image/bmp;base64,${photo.media_binary}`}
+                            alt="PDL"
+                            className="w-full h-full object-cover"
+                        />
+                    ) : photo?.media_filepath ? (
+                        <img
+                            src={photo.media_filepath}
+                            alt="PDL"
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <img
+                            src={noimg}
+                            alt="No Image"
+                            className="w-2/3 h-2/3 object-contain p-2 bg-gray-100 rounded-lg"
+                        />
+                    )}
+                </div>
+            ),
         },
         {
             title: "PDL Name",
-            key: "pdl_name",
-            render: (_, visitor) => (
-                `${visitor?.pdls?.[0]?.pdl.person.first_name ?? ''} ${visitor?.pdls?.[0]?.pdl.person.middle_name ?? ''} ${visitor?.pdls?.[0]?.pdl.person.last_name ?? ''}`.trim()
-            ),
+            dataIndex: "pdlName",
+            key: "pdlName",
         },
         {
             title: "Relationship to Visitor",
-            key: "relationship",
-            render: (_, visitor) => (
-                `${visitor?.pdls?.[0]?.relationship_to_pdl_str ?? ''}`
-            ),
+            dataIndex: "relationshipToPDL",
+            key: "relationshipToPDL",
         },
         {
             title: "Level",
+            dataIndex: "level",
             key: "level",
-            render: (_, visitor) => (
-                `${visitor?.pdl?.cell?.floor?.split("(")[1]?.replace(")", "") ?? ''}`
-            ),
         },
         {
             title: "Annex",
+            dataIndex: "annex",
             key: "annex",
-            render: (_, visitor) => (
-                `${visitor?.pdls?.[0]?.relationship_to_pdl_str ?? ''}`
-            ),
         },
         {
             title: "Dorm",
+            dataIndex: "dorm",
             key: "dorm",
-            render: (_, visitor) => (
-                `${visitor?.pdls?.[0]?.pdl.cell.floor ?? ''}`
-            ),
-        },
-        {
-            title: "Visitor Status",
         },
     ];
 
     return (
-        <div className="space-y-4">
-            {contextHolder}
-            <div className="flex flex-col md:flex-row justify-center md:justify-between items-center">
-                <p className="text-[#1E365D] text-3xl font-bold">PDL Visitor Logs</p>
-                <div>
-                    <Input
-                        placeholder="Search Visitors..."
-                        value={searchText}
-                        className="w-full md:w-56"
-                        onChange={(e) => setSearchText(e.target.value)}
-                    />
-                </div>
+        <div className="p-4">
+            <div className="flex justify-between">
+                <h1 className="text-3xl font-bold text-[#1E365D]">PDL Visitor</h1>
+                <Input
+                    placeholder="Search logs..."
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    className="mb-4 py-2 w-full md:w-64"
+                />
             </div>
-
+            
             <Table
                 dataSource={filteredData}
                 columns={columns}
-                scroll={{ x: 'max-content' }}
+                pagination={{ pageSize: 10 }}
+                rowKey="id"
             />
         </div>
     );

@@ -8,13 +8,15 @@ import { message } from 'antd';
 
 const QrScanner = ({
     setLastScanned,
-    selectedDeviceId
+    selectedDeviceId,
+    selectedArea
 }: {
     setLastScanned: React.Dispatch<React.SetStateAction<any>>;
     selectedDeviceId: string | number;
+    selectedArea: string;
 }) => {
     const token = useTokenStore()?.token;
-    const addOrRemoveVisitorLog = useVisitorLogStore((state) => state.addOrRemoveVisitorLog);
+    const { addOrRemoveVisitorLog, pruneOldLogs } = useVisitorLogStore();
 
     const [scannedQR, setScannedQR] = useState<string | null>(null);
     const [isFetching, setIsFetching] = useState(false);
@@ -24,6 +26,12 @@ const QrScanner = ({
     const lastProcessedQR = useRef<string | null>(null);
     // Add this ref to track scan cooldown
     const scanCooldown = useRef<boolean>(false);
+
+    // Check and clean storage if needed when component mounts
+    useEffect(() => {
+        // Try to free up space if needed
+        pruneOldLogs();
+    }, [pruneOldLogs]);
 
     useEffect(() => {
         const fetchVisitorLog = async () => {
@@ -55,13 +63,49 @@ const QrScanner = ({
 
                 const data = await res.json();
 
+                // Set last scanned regardless of storage issues
                 setLastScanned(data);
-                // Store and display the visitor data
-                addOrRemoveVisitorLog(data);
+
+                // Store visitor data - catch storage issues but continue with API calls
+                if (selectedArea?.toLowerCase() === "main gate") {
+                    try {
+                        const storeSuccess = addOrRemoveVisitorLog(data);
+                        if (!storeSuccess) {
+                            console.warn("Could not persist to local storage - continuing with API calls");
+                            // Try to free up space for next time
+                            pruneOldLogs();
+                        }
+                    } catch (storeErr) {
+                        console.error("Error updating visitor log store:", storeErr);
+                        // Continue with API calls despite store error
+                    }
+                }
+
+                // 2. Determine API endpoints based on selectedArea
+                let visitsUrl = "";
+                let trackingUrl = "";
+
+                switch (selectedArea?.toLowerCase()) {
+                    case "main gate":
+                        visitsUrl = `${BASE_URL}/api/visit-logs/main-gate-visits/`;
+                        trackingUrl = `${BASE_URL}/api/visit-logs/main-gate-tracking/`;
+                        break;
+                    case "visitor station":
+                        visitsUrl = `${BASE_URL}/api/visit-logs/visitor-station-visits/`;
+                        trackingUrl = `${BASE_URL}/api/visit-logs/visitor-station-tracking/`;
+                        break;
+                    case "pdl station":
+                        visitsUrl = `${BASE_URL}/api/visit-logs/pdl-station-visits/`;
+                        trackingUrl = `${BASE_URL}/api/visit-logs/pdl-station-tracking/`;
+                        break;
+                    default:
+                        message.error("Unknown area. Cannot post visit.");
+                        return;
+                }
 
                 // Second API call - POST to visits endpoint
                 if (data && selectedDeviceId) {
-                    const postRes = await fetch(`${BASE_URL}/api/visit-logs/visits/`, {
+                    const postRes = await fetch(visitsUrl, {
                         method: 'post',
                         headers: {
                             'Content-Type': 'application/json',
@@ -70,7 +114,8 @@ const QrScanner = ({
                         body: JSON.stringify({
                             device_id: selectedDeviceId,
                             id_number: data.id_number,
-                            binary_data: data.encrypted_id_number_qr
+                            binary_data: data.encrypted_id_number_qr,
+                            person_id: data?.person?.id
                         })
                     });
 
@@ -83,7 +128,7 @@ const QrScanner = ({
 
                     // Third API call - POST to visits-tracking endpoint
                     if (visitLogResponse?.id) {
-                        const trackingRes = await fetch(`${BASE_URL}/api/visit-logs/visits-tracking/`, {
+                        const trackingRes = await fetch(trackingUrl, {
                             method: 'post',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -98,7 +143,6 @@ const QrScanner = ({
                             throw new Error(`Failed to log visit tracking. Status: ${trackingRes.status}`);
                         }
 
-                        // const trackingResponse = await trackingRes.json();
                         message.success("Visit tracking created successfully!");
                         message.success("Process Complete!");
                     } else {
@@ -126,7 +170,7 @@ const QrScanner = ({
         };
 
         fetchVisitorLog();
-    }, [scannedQR, token, addOrRemoveVisitorLog, setLastScanned, selectedDeviceId]);
+    }, [scannedQR, token, addOrRemoveVisitorLog, setLastScanned, selectedDeviceId, pruneOldLogs, selectedArea]);
 
     const handleScan = (codes: IDetectedBarcode[]) => {
         if (!isFetching && codes.length > 0 && !scanCooldown.current) {

@@ -10,13 +10,12 @@ import { useQuery } from "@tanstack/react-query";
 import { getDevice } from "@/lib/queries";
 import { useTokenStore } from "@/store/useTokenStore";
 
-const QrReader = () => {
+
+const QrReader = ({ selectedArea }: { selectedArea: string }) => {
   const [lastScanned, setLastScanned] = useState<any>({});
   const [dateTime, setDateTime] = useState<string>("");
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | number>("");
   const token = useTokenStore()?.token
-
-  console.log(lastScanned)
 
   const { data, isLoading } = useQuery({
     queryKey: ['get-devices', 'qr-reader'],
@@ -81,6 +80,7 @@ const QrReader = () => {
             <div className="w-full flex flex-col items-center gap-10">
               <h2 className="text-2xl font-semibold">Align your QR code within the box to scan</h2>
               <QrScanner
+                selectedArea={selectedArea}
                 setLastScanned={setLastScanned}
                 selectedDeviceId={selectedDeviceId}
               />

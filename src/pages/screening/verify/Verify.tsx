@@ -15,9 +15,12 @@ const Verify = () => {
     const navigate = useNavigate();
     const token = useTokenStore()?.token
 
+    const { scanners, selectedArea } = location.state || {};
+
     const selectedScanners = useMemo(() => {
-        return (location.state as string[]) ?? [];
-    }, [location.state]);
+        return scanners ?? [];
+    }, [scanners]);
+
 
     const [selectedOption, setSelectedOption] = useState(selectedScanners?.[0])
 
@@ -40,7 +43,7 @@ const Verify = () => {
                     <Select
                         value={selectedOption}
                         className="h-10 w-52"
-                        options={selectedScanners?.map(scanner => ({
+                        options={selectedScanners?.map((scanner: string) => ({
                             label: scanner,
                             value: scanner
                         }))}
@@ -55,13 +58,13 @@ const Verify = () => {
                     selectedOption === "RFID" ? (
                         <Rfid />
                     ) : selectedOption === "QR" ? (
-                        <QrReader />
+                        <QrReader selectedArea={selectedArea} />
                     ) : selectedOption === "Fingerprint" ? (
-                        <Finger devices={data || []} deviceLoading={isLoading} />
+                        <Finger devices={data || []} deviceLoading={isLoading} selectedArea={selectedArea}/>
                     ) : selectedOption === "Face Recognition" ? (
-                        <Face />
+                        <Face devices={data || []} deviceLoading={isLoading} selectedArea={selectedArea}/>
                     ) : selectedOption === "Iris" ? (
-                        <Iris />
+                        <Iris devices={data || []} deviceLoading={isLoading} selectedArea={selectedArea}/>
                     ) : <div>No Scanner Available</div>
                 }
             </div>

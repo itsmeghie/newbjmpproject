@@ -9,13 +9,15 @@ import { Breadcrumb } from "@/components/Breadcrumb.tsx";
 import { Avatar, Dropdown, Button, Modal, MenuProps } from 'antd';
 import { useTokenStore } from "@/store/useTokenStore";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useUserStore } from "@/store/useUserStore.ts";
 
 
 const RootLayout = () => {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const setToken = useTokenStore().setToken
-    const setIsAuthenticated = useAuthStore().setIsAuthenticated
+    const setIsAuthenticated = useAuthStore().setIsAuthenticated;
+    const { clearUser, user } = useUserStore();
 
     const location = useLocation();
     // const routeTitle = location.pathname === "/" ? "DASHBOARD" : location.pathname.slice(1).toUpperCase()
@@ -28,6 +30,7 @@ const RootLayout = () => {
         setIsModalOpen(false);
         setIsAuthenticated(false)
         setToken(null)
+        clearUser()
     };
 
     const handleCancel = () => {
@@ -35,22 +38,22 @@ const RootLayout = () => {
     };
 
     const items: MenuProps['items'] = [
-        {
-            key: '1',
-            label: (
-                <a href="#">
-                    Profile
-                </a>
-            ),
-        },
-        {
-            key: '2',
-            label: (
-                <a href="#">
-                    Account Settings
-                </a>
-            ),
-        },
+        // {
+        //     key: '1',
+        //     label: (
+        //         <a href="#">
+        //             Profile
+        //         </a>
+        //     ),
+        // },
+        // {
+        //     key: '2',
+        //     label: (
+        //         <a href="#">
+        //             Account Settings
+        //         </a>
+        //     ),
+        // },
         {
             key: '3',
             label: (
@@ -85,6 +88,7 @@ const RootLayout = () => {
                 <h2 className="font-bold text-lg">Are you sure that you want to logout?</h2>
                 <p>All unsaved changes will be lost.</p>
             </Modal>
+
             <div className="flex">
                 <Sidebar isSidebarCollapsed={isSidebarCollapsed}>
                     <Navbar isSidebarCollapsed={isSidebarCollapsed} />
@@ -103,7 +107,7 @@ const RootLayout = () => {
                                 <Breadcrumb url={location.pathname} />
                             </h2>
                             <Dropdown menu={{ items }} placement="bottomRight" arrow>
-                                <Avatar className="absolute right-[2%]" />
+                                <Avatar className="absolute right-[2%]">{user?.first_name?.charAt(0)}{user?.last_name?.charAt(0)}</Avatar>
                             </Dropdown>
                         </header>
                         <div className="outlet-container w-full relative px-5">

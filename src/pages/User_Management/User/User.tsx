@@ -71,7 +71,7 @@ const Users = () => {
       const updateUser = {
         ...selectedUser,
         ...values, 
-        email: selectedUser.email, // Ensure email remains unchanged
+        email: selectedUser.email, 
       };
       editUser(updateUser);
     } else {
@@ -256,15 +256,15 @@ const handleClosePdfModal = () => {
       <h1 className="text-2xl font-bold text-[#1E365D]">User</h1>
       <div className="flex items-center justify-between my-4">
       <div className="flex gap-2">
-                        <Dropdown className="bg-[#1E365D] py-2 px-5 rounded-md text-white" overlay={menu}>
-                            <a className="ant-dropdown-link gap-2 flex items-center " onClick={e => e.preventDefault()}>
-                                <GoDownload /> Export
-                            </a>
-                        </Dropdown>
-                        <button className="bg-[#1E365D] py-2 px-5 rounded-md text-white" onClick={handleExportPDF}>
-                            Print Report
-                        </button>
-                    </div>
+          <Dropdown className="bg-[#1E365D] py-2 px-5 rounded-md text-white" overlay={menu}>
+              <a className="ant-dropdown-link gap-2 flex items-center " onClick={e => e.preventDefault()}>
+                  <GoDownload /> Export
+              </a>
+          </Dropdown>
+          <button className="bg-[#1E365D] py-2 px-5 rounded-md text-white" onClick={handleExportPDF}>
+              Print Report
+          </button>
+      </div>
         <div className="flex gap-2 items-center">
           <Input
               placeholder="Search User..."

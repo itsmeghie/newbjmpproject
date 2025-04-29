@@ -1,5 +1,5 @@
 import { CourtBranch, CourtRecord, CrimeCategory, Ethnicities, GangAffiliation, Law, Offense, PDLtoVisit, Precinct, User, VisitorApplicationPayload, VisitorRecord } from "./definitions";
-import { PersonnelForm, Relationship, Role, VisitLogForm, VisitorLogTrackingForm } from "./issues-difinitions";
+import { MainGateLog, PersonnelForm, Relationship, Role, VisitLogForm } from "./issues-difinitions";
 import { PDLs } from "./pdl-definitions";
 import { BASE_URL } from "./urls";
 
@@ -412,7 +412,7 @@ export const patchVisitor = async (
     id: number,
     data: Partial<VisitorApplicationPayload>
     ): Promise<VisitorApplicationPayload> => {
-    const url = `${BASE_URL}/api/visitors/visitor/${id}/`;
+    const url = `${BASE_URL}/api/standards/persons/${id}/`;
     const res = await fetch(url, {
         method: "PATCH",
         headers: {
@@ -503,17 +503,62 @@ export async function getVisitLog(
     return res.json();
 }
 
-export async function getVisitorTraking(
+export async function getVisitorSpecific(id: string,
     token: string
-    ): Promise<VisitorLogTrackingForm[]> {
-    const res = await fetch(`${BASE_URL}/api/visit-logs/visits-tracking/`, {
+    ): Promise<VisitorRecord[]> {
+    const res = await fetch(`${BASE_URL}/api/visit-logs/visitor/?id_number=${id}`, {
         headers: {
         "Content-Type": "application/json",
         Authorization: `Token ${token}`,
         },
     });
     if (!res.ok) {
-        throw new Error("Failed to fetch Visit Log Tracking data.");
+        throw new Error("Failed to fetch Visitor Specifi data.");
+    }
+    return res.json();
+}
+
+export async function getMainGate(
+    token: string
+    ): Promise<MainGateLog[]> {
+    const res = await fetch(`${BASE_URL}/api/visit-logs/main-gate-visits/`, {
+        headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${token}`,
+        },
+    });
+    if (!res.ok) {
+        throw new Error("Failed to fetch Main Gate data.");
+    }
+    return res.json();
+}
+
+export async function getPDLStation(
+    token: string
+    ): Promise<MainGateLog[]> {
+    const res = await fetch(`${BASE_URL}/api/visit-logs/pdl-station-visits/`, {
+        headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${token}`,
+        },
+    });
+    if (!res.ok) {
+        throw new Error("Failed to fetch PDL Station data.");
+    }
+    return res.json();
+}
+
+export async function getVisitorStation(
+    token: string
+    ): Promise<MainGateLog[]> {
+    const res = await fetch(`${BASE_URL}/api/visit-logs/visitor-station-visits/`, {
+        headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${token}`,
+        },
+    });
+    if (!res.ok) {
+        throw new Error("Failed to fetch Visitor Station data.");
     }
     return res.json();
 }

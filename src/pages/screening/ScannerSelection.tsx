@@ -12,18 +12,29 @@ import { NavLink } from "react-router-dom";
 type Props = {
     open: boolean;
     onClose: () => void;
+    selectedArea: string | null;
 };
 
-const ScannerSelection = ({ open, onClose }: Props) => {
+const ScannerSelection = ({ open, onClose, selectedArea }: Props) => {
     const [selectedScanners, setSelectedScanners] = useState<string[]>([]);
 
-    const scannerSelection = [
-        { scanner: "RFID", icon: rfidScanImg },
-        { scanner: "QR", icon: qrScanImg },
-        { scanner: "Fingerprint", icon: fingerScanImg },
-        { scanner: "Face Recognition", icon: faceqrScanImg },
-        { scanner: "Iris", icon: irisqrScanImg },
-    ];
+    let scannerSelection = [];
+
+    if (selectedArea === "PDL Station") {
+        scannerSelection = [
+            { scanner: "Fingerprint", icon: fingerScanImg },
+            { scanner: "Face Recognition", icon: faceqrScanImg },
+            { scanner: "Iris", icon: irisqrScanImg },
+        ];
+    } else {
+        scannerSelection = [
+            { scanner: "RFID", icon: rfidScanImg },
+            { scanner: "QR", icon: qrScanImg },
+            { scanner: "Fingerprint", icon: fingerScanImg },
+            { scanner: "Face Recognition", icon: faceqrScanImg },
+            { scanner: "Iris", icon: irisqrScanImg },
+        ];
+    }
 
     const toggleScanner = (scannerName: string) => {
         setSelectedScanners((prev) =>
@@ -84,17 +95,21 @@ const ScannerSelection = ({ open, onClose }: Props) => {
 
                 <div className="w-full flex justify-center mt-4">
                     <NavLink
-                        to={"verify"}
-                        state={selectedScanners}
+                        to="verify"
+                        state={{
+                            scanners: selectedScanners,
+                            selectedArea,
+                        }}
                         className={`px-4 py-2 rounded-md font-semibold transition
-      ${selectedScanners.length === 0
+                            ${selectedScanners.length === 0
                                 ? "bg-gray-400 cursor-not-allowed pointer-events-none opacity-30"
                                 : "bg-blue-500 hover:bg-blue-600 text-white"
                             }
-    `}
+                        `}
                     >
                         Next
                     </NavLink>
+
                 </div>
 
             </div>
