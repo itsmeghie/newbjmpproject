@@ -188,7 +188,7 @@ const Personnel = () => {
         {
             title: "Action",
             key: "action",
-            render: (_: any, record: any, index) => (
+            render: (_: any, record: any, index: string | number) => (
                 <div className="flex gap-2">
                     <Button
                         type="link"

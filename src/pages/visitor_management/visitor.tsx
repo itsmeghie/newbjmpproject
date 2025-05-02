@@ -3,7 +3,7 @@ import { useTokenStore } from "@/store/useTokenStore"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { message, Table, Modal, Button, Image, Menu, Dropdown } from "antd"
 import Fuse from "fuse.js";
-import { useEffect, useState } from "react"
+import { Key, useEffect, useState } from "react"
 import { ColumnsType } from "antd/es/table"
 import { VisitorRecord } from "@/lib/definitions"
 import { calculateAge } from "@/functions/calculateAge"
@@ -435,8 +435,8 @@ const Visitor: React.FC<VisitorProps> = () => {
                             <div className="md:px-3 space-y-2">
                                 <div className="grid grid-cols-1 md:grid-cols-2 space-y-3 md:space-y-0 md:space-x-3">
                                     <div className="space-y-3 w-full flex flex-col">
-                                    <div className="border border-[#EAEAEC] rounded-xl p-2 flex shadow-md shadow-[#8E8E8E]/20 place-items-center bg-white">
-                                            <div className="bg-[#C4C4C4] w-full h-56 rounded-xl">
+                                    <div className="border border-[#EAEAEC] rounded-xl p-2 flex place-items-center">
+                                            <div className="w-full h-56 rounded-xl">
                                             {ProfileImage?.media_binary ? (
                                                 <img
                                                     src={`data:image/bmp;base64,${ProfileImage.media_binary}`}
@@ -452,7 +452,7 @@ const Visitor: React.FC<VisitorProps> = () => {
                                             )}
                                             </div>
                                         </div>
-                                        <div className="border shadow-md shadow-[#8E8E8E]/20 h-fit border-[#EAEAEC] rounded-xl py-2 px-3 overflow-hidden">
+                                        <div className="border h-fit border-[#EAEAEC] rounded-xl py-2 px-3 overflow-hidden">
                                             <p className="text-[#404958] text-sm">Visitor History</p>
                                             <div className="overflow-y-auto h-full">
                                             
@@ -499,7 +499,7 @@ const Visitor: React.FC<VisitorProps> = () => {
                                                             </tr>
                                                             );
                                                         })}
-                                                        {selectedVisitor.visits.length > 4 && (
+                                                        {selectedVisitor.visits?.length > 4 && (
                                                             <div className="text-center mt-2">
                                                                 <button
                                                                 onClick={() => setShowAllVisits(!showAllVisits)}
@@ -520,9 +520,9 @@ const Visitor: React.FC<VisitorProps> = () => {
                                         </div>
                                     </div>
                                     <div className="space-y-3">
-                                        <div className="border border-[#EAEAEC] shadow-md shadow-[#8E8E8E]/20 rounded-xl p-2 w-full">
+                                        <div className="border border-[#EAEAEC] rounded-xl p-2 pb-2 w-full">
                                             <p className="text-[#404958] text-sm">Visitors/Dalaw Basic Info</p>
-                                            <div className="grid grid-cols-1 gap-2">
+                                            <div className="grid grid-cols-1 gap-2 py-2">
                                                 <Info title="Type of Visitor:" info={selectedVisitor?.visitor_type ?? "N/A"} />
                                                 <Info title="Surname:" info={selectedVisitor?.person?.last_name || "N/A"}/>
                                                 <Info title="First Name:" info={selectedVisitor?.person?.first_name || "N/A"}/>
@@ -552,7 +552,7 @@ const Visitor: React.FC<VisitorProps> = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="border border-[#EAEAEC] shadow-md shadow-[#8E8E8E]/20 rounded-xl p-2 w-full">
+                                <div className="border border-[#EAEAEC] rounded-xl p-2 w-full">
                                     <div className="w-full flex flex-col">
                                         <div className="flex text-center mb-1">
                                             <div className="flex-grow">
@@ -562,7 +562,7 @@ const Visitor: React.FC<VisitorProps> = () => {
                                                 <h1 className="text-[#404958] text-sm">Cell Assigned</h1>
                                             </div>
                                         </div>
-                                        <div className="overflow-y-auto">
+                                        <div className="overflow-y-auto pb-1">
                                             <table className="w-full border-collapse">
                                                 <thead>
                                                     <tr className="bg-[#2F3237] text-white text-xs">
@@ -577,27 +577,27 @@ const Visitor: React.FC<VisitorProps> = () => {
                                                 </thead>
                                                 <tbody>
                                                     {selectedVisitor?.pdls?.length > 0 ? (
-                                                        selectedVisitor.pdls.map((pdlItem, index) => (
+                                                        selectedVisitor.pdls.map((pdlItem: { pdl: { person: { id: any; last_name: any; first_name: any; middle_name: any; }; cell: { cell_name: any; floor: string; }; }; }, index: Key | null | undefined) => (
                                                         <tr key={index}>
-                                                            <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
+                                                            <td className="text-center text-[9px] font-light">
                                                             {pdlItem.pdl.person.id || "N/A"}
                                                             </td>
-                                                            <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
+                                                            <td className="text-center text-[9px] font-light">
                                                             {pdlItem.pdl.person.last_name || "N/A"}
                                                             </td>
-                                                            <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
+                                                            <td className="text-center text-[9px] font-light">
                                                             {pdlItem.pdl.person.first_name || "N/A"}
                                                             </td>
-                                                            <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
+                                                            <td className="text-center text-[9px] font-light">
                                                             {pdlItem.pdl.person.middle_name || "N/A"}
                                                             </td>
-                                                            <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
+                                                            <td className="text-center text-[9px] font-light">
                                                             {pdlItem.pdl.cell.cell_name || "N/A"}
                                                             </td>
-                                                            <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
+                                                            <td className="text-center text-[9px] font-light">
                                                             {pdlItem.pdl.cell.floor?.split("(")[1]?.replace(")", "") || "N/A"}
                                                             </td>
-                                                            <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
+                                                            <td className="text-center text-[9px] font-light">
                                                             {pdlItem.pdl.cell.floor || "N/A"}
                                                             </td>
                                                         </tr>
@@ -615,7 +615,7 @@ const Visitor: React.FC<VisitorProps> = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="md:mx-3 border border-[#EAEAEC] rounded-xl p-2 flex flex-col space-y-2 shadow-md shadow-[#8E8E8E]/20 place-items-center bg-white">
+                            <div className="md:mx-3 border border-[#EAEAEC] rounded-xl p-2 flex flex-col space-y-2 place-items-center bg-white">
                                 <div className="w-full flex flex-wrap gap-2 text-center"> 
                                     <div className="flex flex-col md:flex-row gap-2">
                                         <div className="flex flex-col md:flex-row gap-2">

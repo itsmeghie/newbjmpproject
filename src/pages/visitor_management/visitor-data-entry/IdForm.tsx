@@ -271,6 +271,7 @@ const IdForm = ({ setPersonForm, idTypes, handleIdsModalCancel, editRequirement,
                         <label className='flex flex-col gap-1'>
                             <span className='font-semibold'>Issued by</span>
                             <Input
+                                required
                                 value={idForm?.issued_by}
                                 className='h-12'
                                 onChange={(e) => setIdForm(prev => ({ ...prev, issued_by: e.target.value }))}

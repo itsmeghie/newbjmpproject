@@ -6,17 +6,17 @@ import { ColumnsType } from 'antd/es/table';
 import { RemarksForm as RemarksFormType, VisitorForm } from "@/lib/visitorFormDefinition";
 import { UserAccounts } from "@/lib/definitions";
 import { Dispatch, SetStateAction } from "react";
-import RemarksForm from './RemarksForm'; // Adjust import path as needed
+import RemarksForm from '../visitor-data-entry/RemarksForm'; 
+import moment from 'moment'; // Import moment
 
 type Props = {
     deleteRemarksByIndex: (index: number) => void;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setVisitorForm: Dispatch<SetStateAction<any>>;
     currentUser: UserAccounts | null;
     visitorForm: VisitorForm;
 }
 
-const Remarks = ({visitorForm, setVisitorForm, currentUser, deleteRemarksByIndex }: Props) => {
+const UpdateRemarks = ({ visitorForm, setVisitorForm, currentUser, deleteRemarksByIndex }: Props) => {
     const [idsModalOpen, setIdsModalOpen] = useState(false);
     const [remarksTableInfo, setRemarksTableInfo] = useState<RemarksFormType[]>([]);
     const [editingRemark, setEditingRemark] = useState<{ index: number, data: RemarksFormType } | null>(null);
@@ -26,6 +26,7 @@ const Remarks = ({visitorForm, setVisitorForm, currentUser, deleteRemarksByIndex
             setRemarksTableInfo(visitorForm?.remarks_data);
         }
     }, [visitorForm?.remarks_data]);
+
     const handleModalOpen = () => {
         setIdsModalOpen(true);
     }
@@ -44,7 +45,7 @@ const Remarks = ({visitorForm, setVisitorForm, currentUser, deleteRemarksByIndex
     const remarksDataSource = remarksTableInfo?.map((remarks, index) => {
         return ({
             key: index,
-            timestamp: remarks?.timestamp,
+            createdAt: moment(remarks?.created_at).format('YYYY-MM-DD HH:mm:ss'), // Format using moment
             createdBy: remarks?.created_by,
             remarks: remarks?.remarks,
             actions: (
@@ -71,39 +72,39 @@ const Remarks = ({visitorForm, setVisitorForm, currentUser, deleteRemarksByIndex
                     </button>
                 </div>
             )
-        })
+        });
     });
 
     const remarksColumn: ColumnsType<{
-        timestamp: string | undefined;
+        createdAt: string | undefined;
         createdBy: string | undefined;
         remarks: string | null;
         actions: JSX.Element;
     }> = [
-            {
-                title: 'Time Stamp',
-                dataIndex: 'timestamp',
-                key: 'timestamp',
-            },
-            {
-                title: 'Created by',
-                dataIndex: 'createdBy',
-                key: 'createdBy',
-            },
-            {
-                title: 'Notes/ Remarks',
-                align: 'center',
-                dataIndex: 'remarks',
-                key: 'remarks',
-                width: '50%'
-            },
-            {
-                title: "Actions",
-                key: "actions",
-                dataIndex: "actions",
-                align: 'center',
-            },
-        ];
+        {
+            title: 'Time Stamp',
+            dataIndex: 'createdAt',
+            key: 'createdAt',
+        },
+        {
+            title: 'Created by',
+            dataIndex: 'createdBy',
+            key: 'createdBy',
+        },
+        {
+            title: 'Notes/ Remarks',
+            align: 'center',
+            dataIndex: 'remarks',
+            key: 'remarks',
+            width: '50%',
+        },
+        {
+            title: "Actions",
+            key: "actions",
+            dataIndex: "actions",
+            align: 'center',
+        },
+    ];
 
     return (
         <div className="flex flex-col gap-5 mt-10">
@@ -152,4 +153,4 @@ const Remarks = ({visitorForm, setVisitorForm, currentUser, deleteRemarksByIndex
     );
 }
 
-export default Remarks;
+export default UpdateRemarks;

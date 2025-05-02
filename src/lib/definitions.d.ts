@@ -81,6 +81,7 @@ export type Jail = {
 };
 
 export type Personnel = {
+  personnel_reg_no: string;
   id: number;
   organization: number;
   jail: number;
@@ -217,6 +218,7 @@ export type JailRegion = {
 };
 
 export type JailProvince = {
+  region_id: number;
   id: number;
   region: number;
   desc: string;
@@ -1468,12 +1470,15 @@ export type MultipleBirthClassType = {
 };
 
 type VisitorRecord = {
+  organization: string;
+  visits: any;
   id: number;
   org: string;
   jail: string;
   verified_by: string;
   approved_by: string;
   person: {
+    media_requirements: any;
     id: number;
     biometrics: string;
     gender: {

@@ -1,4 +1,4 @@
-import { getJail_Area, deleteJail_Area, getUser } from "@/lib/queries"
+import { getJail_Area, deleteJail_Area, getUser, getOrganization } from "@/lib/queries"
 import { useTokenStore } from "@/store/useTokenStore"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Button, Dropdown, Menu, message, Modal, Table } from "antd"
@@ -39,7 +39,7 @@ const JailArea = () => {
     const { data } = useQuery({
         queryKey: ['jailarea'],
         queryFn: () => getJail_Area(token ?? ""),
-    });
+    })
     const { data: UserData } = useQuery({
         queryKey: ['user'],
         queryFn: () => getUser(token ?? "")

@@ -57,6 +57,7 @@ export type DiagnosisForm = {
 };
 
 export type RemarksForm = {
+  created_at: MomentInput;
   timestamp: string;
   created_by: string;
   remarks: string;
@@ -169,6 +170,8 @@ export type SocialMediaAccountForm = {
 };
 
 export type VisitorForm = {
+  approved_at: any;
+  verified_at: any;
   visitor_reg_no: number;
   shortname: string;
   visitor_have_twins: boolean;
