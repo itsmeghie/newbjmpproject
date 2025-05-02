@@ -1,9 +1,9 @@
-import { deleteVisitors, getUser, getVisitor_Type, getVisitorSpecific, getVisitorSpecificById } from "@/lib/queries"
+import { deleteVisitors, getUser,  getVisitorSpecific, getVisitorSpecificById } from "@/lib/queries"
 import { useTokenStore } from "@/store/useTokenStore"
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query"
-import { message, Table, Modal, Button, Image, Form, Input, Select, Menu, Dropdown } from "antd"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { message, Table, Modal, Button, Image, Menu, Dropdown } from "antd"
 import Fuse from "fuse.js";
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ColumnsType } from "antd/es/table"
 import { VisitorRecord } from "@/lib/definitions"
 import { calculateAge } from "@/functions/calculateAge"
@@ -14,14 +14,11 @@ import * as XLSX from "xlsx";
 import { useRef } from "react";
 import noimg from '../../../public/noimg.png'
 import { AiOutlineDelete, AiOutlineEdit } from "react-icons/ai"
-import { patchVisitor } from "@/lib/query";
 import html2canvas from 'html2canvas';
 import { GoDownload } from "react-icons/go";
 import bjmp from '../../assets/Logo/QCJMD.png'
-import { VisitorApplicationPayload } from "@/lib/issues-difinitions";
-import VisitorProfile from "./visitor-data-entry/visitorprofile";
-import { PersonForm, VisitorForm } from "@/lib/visitorFormDefinition";
 import EditVisitor from "./EditVisitor.tsx/EditVisitor";
+import { useNavigate } from "react-router-dom";
 
 type Visitor = VisitorRecord;
 
@@ -29,7 +26,7 @@ interface VisitorProps {
     handlePrintPDF: () => void;
 }
 
-const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
+const Visitor: React.FC<VisitorProps> = () => {
     const [searchText, setSearchText] = useState("");
     const [selectedVisitor, setSelectedVisitor] = useState<Visitor | null>(null);
     const queryClient = useQueryClient();
@@ -38,8 +35,17 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
     const [messageApi, contextHolder] = message.useMessage();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectEditVisitor, setEditSelectedVisitor] = useState<Visitor | null>(null);
+    const [visitorVisits, setVisitorVisits] = useState(selectedVisitor?.visits || []);
+    const [showAllVisits, setShowAllVisits] = useState(false);
     const [pdfDataUrl, setPdfDataUrl] = useState(null);
     const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (selectedVisitor?.visits) {
+            setVisitorVisits(selectedVisitor.visits);
+            }
+        }, [selectedVisitor]);
 
     const { data } = useQuery({
         queryKey: ['visitor'],
@@ -160,8 +166,9 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
                         type="link"
                         onClick={(e) => {
                             e.stopPropagation();
-                            setEditSelectedVisitor(record);
-                            setIsEditModalOpen(true);
+                            navigate("update-visitor", {
+                                state: { visitor: record },
+                            });
                         }}
                     >
                         <AiOutlineEdit />
@@ -304,11 +311,12 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
     };
     
     const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dataSource);
+        const exportData = dataSource.map(({ id, updated, organization, ...rest }) => rest); 
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Visitors");
-        XLSX.writeFile(wb, "Visitors.xlsx");
-    };  
+        XLSX.utils.book_append_sheet(wb, ws, "Visitor");
+        XLSX.writeFile(wb, "Visitor.xlsx");
+    };
 
     const menu = (
         <Menu>
@@ -316,7 +324,7 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
                 <a onClick={handleExportExcel}>Export Excel</a>
             </Menu.Item>
             <Menu.Item>
-                <CSVLink data={dataSource} filename="Visitors.csv">
+                <CSVLink data={dataSource.map(({ id, organization,updated, ...rest }) => rest)} filename="Visitors.csv">
                     Export CSV
                 </CSVLink>
             </Menu.Item>
@@ -447,31 +455,67 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
                                         <div className="border shadow-md shadow-[#8E8E8E]/20 h-fit border-[#EAEAEC] rounded-xl py-2 px-3 overflow-hidden">
                                             <p className="text-[#404958] text-sm">Visitor History</p>
                                             <div className="overflow-y-auto h-full">
-                                                <table className="w-full border-collapse">
+                                            
+                                                <div>
+                                                    <table className="w-full border-collapse">
                                                     <thead>
                                                         <tr>
-                                                            <th className="rounded-l-lg bg-[#2F3237] text-white py-1 px-2 font-semibold text-xs">Date</th>
-                                                            <th className="bg-[#2F3237] text-white py-1 px-2 font-semibold text-xs">Duration</th>
-                                                            <th className="bg-[#2F3237] text-white py-1 px-2 font-semibold text-xs">Login</th>
-                                                            <th className="rounded-r-lg bg-[#2F3237] text-white py-1 px-2 font-semibold text-xs">Logout</th>
+                                                        <th className="rounded-l-lg bg-[#2F3237] text-white py-1 px-2 font-semibold text-xs">Date</th>
+                                                        <th className="bg-[#2F3237] text-white py-1 px-2 font-semibold text-xs">Duration</th>
+                                                        <th className="bg-[#2F3237] text-white py-1 px-2 font-semibold text-xs">Login</th>
+                                                        <th className="rounded-r-lg bg-[#2F3237] text-white py-1 px-2 font-semibold text-xs">Logout</th>
                                                         </tr>
                                                     </thead>
+                                                    {selectedVisitor?.visits?.length > 0 && (
                                                     <tbody>
-                                                        <tr>
-                                                            <td className="border-b border-[#DCDCDC] text-[9px] font-light p-1 text-center">
-                                                                0
-                                                            </td>
-                                                            <td className="border-b border-[#DCDCDC] text-[9px] font-light p-1 text-center">0
-                                                            </td>
-                                                            <td className="border-b border-[#DCDCDC] text-[9px] font-light p-1 text-center">
-                                                                0
-                                                            </td>
-                                                            <td className="border-b border-[#DCDCDC] text-[9px] font-light p-1 text-center">
-                                                                0
-                                                            </td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
+                                                        {(showAllVisits
+                                                            ? [...visitorVisits].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+                                                            : [...visitorVisits]
+                                                                .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+                                                                .slice(0, 3)
+                                                        ).map((visit, index, arr) => {
+                                                            const login = new Date(visit.created_at);
+                                                            const logout = arr[index + 1] ? new Date(arr[index + 1].created_at) : new Date(visit.updated_at);
+                                                            const durationMs = logout.getTime() - login.getTime();
+                                                            const durationMins = Math.floor(durationMs / 60000);
+                                                            const hours = Math.floor(durationMins / 60);
+                                                            const minutes = durationMins % 60;
+                                                            return (
+                                                            <tr key={index}>
+                                                                <td className="border-b border-[#DCDCDC] text-[9px] font-light p-1 text-center">
+                                                                {login.toLocaleDateString()}
+                                                                </td>
+                                                                <td className="border-b border-[#DCDCDC] text-[9px] font-light p-1 text-center">
+                                                                {`${hours}h ${minutes}m`}
+                                                                </td>
+                                                                <td className="border-b border-[#DCDCDC] text-[9px] font-light p-1 text-center">
+                                                                {login.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                                                </td>
+                                                                <td className="border-b border-[#DCDCDC] text-[9px] font-light p-1 text-center">
+                                                                {logout
+                                                                    ? logout.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                                                                    : "-"}
+                                                                </td>
+                                                            </tr>
+                                                            );
+                                                        })}
+                                                        {selectedVisitor.visits.length > 4 && (
+                                                            <div className="text-center mt-2">
+                                                                <button
+                                                                onClick={() => setShowAllVisits(!showAllVisits)}
+                                                                className="text-xs text-blue-600 hover:underline"
+                                                                >
+                                                                {showAllVisits ? "Show Less" : "Show More"}
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                        
+                                                        </tbody>
+                                                    )}
+                                                    </table>
+                                                    
+                                                </div>
+                                                
                                             </div>
                                         </div>
                                     </div>
@@ -518,7 +562,7 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
                                                 <h1 className="text-[#404958] text-sm">Cell Assigned</h1>
                                             </div>
                                         </div>
-                                        <div className="overflow-y-auto h-10">
+                                        <div className="overflow-y-auto">
                                             <table className="w-full border-collapse">
                                                 <thead>
                                                     <tr className="bg-[#2F3237] text-white text-xs">
@@ -532,30 +576,40 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    <tr>
-                                                    <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
-                                                        {selectedVisitor?.pdls?.[0]?.pdl.person.id || "N/A"}
-                                                    </td>
-                                                    <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
-                                                        {selectedVisitor?.pdls?.[0]?.pdl.person.last_name || "N/A"}
-                                                    </td>
-                                                    <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
-                                                        {selectedVisitor?.pdls?.[0]?.pdl.person.first_name || "N/A"}
-                                                    </td>
-                                                    <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
-                                                        {selectedVisitor?.pdls?.[0]?.pdl.person.middle_name || "N/A"}
-                                                    </td>
-                                                    <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
-                                                        {selectedVisitor?.pdls?.[0]?.pdl.cell.cell_name || "N/A"}
-                                                    </td>
-                                                    <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
-                                                        {selectedVisitor?.pdls?.[0]?.pdl?.cell?.floor?.split("(")[1]?.replace(")", "") || "N/A"}
-                                                    </td>
-                                                    <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
-                                                        {selectedVisitor?.pdls?.[0]?.pdl.cell.floor || "N/A"}
-                                                    </td>
-                                                    </tr>
-                                                </tbody>
+                                                    {selectedVisitor?.pdls?.length > 0 ? (
+                                                        selectedVisitor.pdls.map((pdlItem, index) => (
+                                                        <tr key={index}>
+                                                            <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
+                                                            {pdlItem.pdl.person.id || "N/A"}
+                                                            </td>
+                                                            <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
+                                                            {pdlItem.pdl.person.last_name || "N/A"}
+                                                            </td>
+                                                            <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
+                                                            {pdlItem.pdl.person.first_name || "N/A"}
+                                                            </td>
+                                                            <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
+                                                            {pdlItem.pdl.person.middle_name || "N/A"}
+                                                            </td>
+                                                            <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
+                                                            {pdlItem.pdl.cell.cell_name || "N/A"}
+                                                            </td>
+                                                            <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
+                                                            {pdlItem.pdl.cell.floor?.split("(")[1]?.replace(")", "") || "N/A"}
+                                                            </td>
+                                                            <td className="border-b border-[#DCDCDC] text-center text-[9px] font-light">
+                                                            {pdlItem.pdl.cell.floor || "N/A"}
+                                                            </td>
+                                                        </tr>
+                                                        ))
+                                                    ) : (
+                                                        <tr>
+                                                        <td colSpan={7} className="text-center text-[9px] text-gray-500 py-2">
+                                                            No PDL records found.
+                                                        </td>
+                                                        </tr>
+                                                    )}
+                                                    </tbody>
                                             </table>
                                         </div>
                                     </div>
@@ -735,13 +789,14 @@ const Visitor: React.FC<VisitorProps> = ({ handlePrintPDF }) => {
                 )}
             </Modal>
             <Modal
-                title="Edit Visitor Type"
+                title="Edit Visitor"
                 open={isEditModalOpen}
                 onCancel={() => setIsEditModalOpen(false)}
                 footer={null}
+                width="80%"
             >
                 <EditVisitor
-                    visitor={selectEditVisitor}
+                    editvisitor={selectEditVisitor}
                     onClose={() => setIsEditModalOpen(false)}
                 />
             </Modal>

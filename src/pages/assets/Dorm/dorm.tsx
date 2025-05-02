@@ -132,7 +132,8 @@ const Dorm = () => {
     ];
 
     const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dataSource);
+        const exportData = dataSource.map(({ id, updated_by, organization, ...rest }) => rest); 
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Dorm");
         XLSX.writeFile(wb, "Dorm.xlsx");
@@ -165,7 +166,7 @@ const Dorm = () => {
         
             doc.setTextColor(0, 102, 204);
             doc.setFontSize(16);
-            doc.text("Cell Report", 10, 15); 
+            doc.text("Dorm Report", 10, 15); 
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(10);
             doc.text(`Organization Name: ${organizationName}`, 10, 25);
@@ -240,7 +241,7 @@ const Dorm = () => {
                 <a onClick={handleExportExcel}>Export Excel</a>
             </Menu.Item>
             <Menu.Item>
-                <CSVLink data={dataSource} filename="Dorm.csv">
+                <CSVLink data={dataSource.map(({ id, organization,updated_by, ...rest }) => rest)} filename="Dorm.csv">
                     Export CSV
                 </CSVLink>
             </Menu.Item>

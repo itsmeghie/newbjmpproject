@@ -98,7 +98,7 @@ export type IdentifierForm = {
 export type AddressForm = {
   type: "Home" | "Work" | "Other";
   province_id: number | null;
-  city_municipality_id: number | null;
+  municipality_id: number | null;
   region_id: number | null;
   barangay_id: number | null;
   street: string | null;
@@ -190,6 +190,8 @@ export type VisitorForm = {
 };
 
 type RemarksData = {
+  create_at?: string;
+  created_by?: string;
   remarks: string;
 };
 
@@ -208,7 +210,7 @@ export type PdlVisitor = {
 };
 
 export type PDLForm = {
-  person_id: number | null;
+  person_id?: number | null;
   org_id: number | null;
   jail_id: number | null;
   pdl_alias?: string;
@@ -227,11 +229,11 @@ export type PDLForm = {
   look_id: number | null;
   date_of_admission?: string;
   gang_affiliation_id: number | null;
-  occupation: number | null;
+  occupation_id: number | null;
   time_arrested?: string;
   case_data: CasesDetailsForm[];
   remarks_data?: RemarksData[];
-  person_relationship_data: FamilyRelativesContactsForm[];
+  person_relationship_data?: FamilyRelativesContactsForm[];
   precinct_id: number | null;
   cell_id: number | null;
   floor_id: number | null;
@@ -244,6 +246,7 @@ export type CasesDetailsForm = {
   case_number: string | null;
   offense_id: number | null;
   court_branch_id: number | null;
+  crime_category_id: number | null;
   court_name?: string;
   judge: string;
   bail_recommended: string;
@@ -252,7 +255,6 @@ export type CasesDetailsForm = {
   days_in_detention: number | string | null;
   assignment_date: string | null;
   remarks: string;
-  crime_category_id: number | null;
   law_id: number | null;
 };
 
@@ -291,12 +293,13 @@ export type PersonnelForm = {
   personnel_app_status_id: number | null;
   position_id: number | null;
   remarks_data: RemarksData[];
+  personnel_type_id: number | null;
   person_relationship_data: FamilyRelativesContactsForm[];
   personnel_reg_no: string | null;
   id_number: string | null;
   shortname: string;
   date_joined: string;
-  personnel_type: number | null;
+  personnel_type?: number | null;
   verified_by: number | null;
   approved_by: number | null;
 };

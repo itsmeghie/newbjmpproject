@@ -2277,6 +2277,7 @@ export type Law = {
 };
 
 export type CrimeCategory = {
+  organization: string;
   id: number;
   created_by: string | null;
   updated_by: string | null;

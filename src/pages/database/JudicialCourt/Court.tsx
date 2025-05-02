@@ -2,7 +2,6 @@ import { Button, Dropdown, Form, Input, Menu, message, Modal, Table } from "antd
 import { useState } from "react";
 import { AiOutlineDelete, AiOutlineEdit } from "react-icons/ai"
 import { GoDownload, GoPlus } from "react-icons/go";
-import { LuSearch } from "react-icons/lu";
 import AddCourt from "./AddCourt";
 import { CSVLink } from "react-csv";
 import jsPDF from "jspdf";
@@ -171,7 +170,8 @@ const Court = () => {
     ]
 
     const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dataSource);
+        const exportData = dataSource.map(({ id, updated, organization, ...rest }) => rest); 
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Court");
         XLSX.writeFile(wb, "Court.xlsx");
@@ -277,7 +277,7 @@ const Court = () => {
                 <a onClick={handleExportExcel}>Export Excel</a>
             </Menu.Item>
             <Menu.Item>
-                <CSVLink data={dataSource} filename="Court.csv">
+                <CSVLink data={dataSource.map(({ id, organization,updated, ...rest }) => rest)} filename="Court.csv">
                     Export CSV
                 </CSVLink>
             </Menu.Item>

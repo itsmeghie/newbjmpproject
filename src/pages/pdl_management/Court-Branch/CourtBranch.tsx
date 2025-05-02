@@ -233,10 +233,9 @@ const CourtBranch = () => {
         (province) => province.region
     );
 
-    console.log("Selected Region:", branch.region);
-    console.log("Filtered Provinces:", filteredProvinces);
     const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dataSource);
+        const exportData = dataSource.map(({ id, updated, organization, ...rest }) => rest); 
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "CourtBranch");
         XLSX.writeFile(wb, "CourtBranch.xlsx");
@@ -343,7 +342,7 @@ const CourtBranch = () => {
                 <a onClick={handleExportExcel}>Export Excel</a>
             </Menu.Item>
             <Menu.Item>
-                <CSVLink data={dataSource} filename="CourtBranch.csv">
+                <CSVLink data={dataSource.map(({ id, organization,updated, ...rest }) => rest)} filename="CourtBranch.csv">
                     Export CSV
                 </CSVLink>
             </Menu.Item>

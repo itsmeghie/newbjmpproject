@@ -36,7 +36,9 @@ const LoginOTP = () => {
         }
 
         const data = await response.json();
-        return data.token;
+
+        // Return both the token and the status code for determining the flow
+        return { token: data.token, user: data.user, status: response.status };
     };
 
     // Verify OTP request
@@ -61,9 +63,19 @@ const LoginOTP = () => {
     // Login mutation to request OTP
     const loginMutation = useMutation({
         mutationFn: requestOTP,
-        onSuccess: () => {
-            setIsOTPModalVisible(true);
-            message.success("OTP sent to your email");
+        onSuccess: (data) => {
+            // If status is 200, immediately authenticate the user without OTP
+            if (data.status === 200) {
+                setToken(data.token);
+                setUser(data.user);
+                setIsAuthenticated(true);
+                message.success("Welcome");
+                navigate("/jvms/dashboard");
+            } else {
+                // Otherwise, show OTP modal
+                setIsOTPModalVisible(true);
+                message.success("OTP sent to your email");
+            }
         },
         onError: (error) => {
             console.error("Login error:", error);
@@ -173,7 +185,7 @@ const LoginOTP = () => {
                                 className="shadow w-full bg-black text-white rounded-lg hover:bg-gray-600 hover:text-white h-12 disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={loginMutation.isPending}
                             >
-                                {loginMutation.isPending ? "Sending OTP..." : "Login"}
+                                {loginMutation.isPending ? "Logging in..." : "Login"}
                             </button>
                         </form>
                     </div>

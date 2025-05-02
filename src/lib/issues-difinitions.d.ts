@@ -645,3 +645,219 @@ export interface MainGateLog {
   binary_data: string;
   person: number;
 }
+
+export interface PersonFormPayload {
+  gender_id: number;
+  nationality_id: number;
+  civil_status_id: number;
+  religion_id: number;
+  record_status_id: number;
+
+  address_id: number[];
+  contact_id: number[];
+  talent_id: number[];
+  skill_id: number[];
+  interest_id: number[];
+  identifier_id: number[];
+  employment_history_id: number[];
+  education_background_id: number[];
+  social_media_account_id: number[];
+  affiliation_id: number[];
+  diagnosis_id: number[];
+
+  address_data: AddressData[];
+  contact_data: ContactData[];
+  employment_history_data: EmploymentHistoryData[];
+  education_background_data: EducationBackgroundData[];
+  social_media_account_data: SocialMediaAccountData[];
+  diagnosis_data: DiagnosisData[];
+  media_data: MediaData[];
+  identifier_data: IdentifierData[];
+  media_requirement_data: MediaRequirementData[];
+}
+
+export interface AddressData {
+  record_status_id: number;
+  province_id: number;
+  municipality_id: number;
+  region_id: number;
+  barangay_id: number;
+  country_id: number;
+  address_type_id: number;
+  type: string;
+  street: string;
+  postal_code: string;
+  is_current: boolean;
+  is_active: boolean;
+  street_number: string;
+  bldg_subdivision: string;
+  latitude: string;
+  longitude: string;
+  remarks: string;
+}
+
+export interface ContactData {
+  record_status_id: number;
+  type: string;
+  value: string;
+  is_primary: boolean;
+  mobile_imei: string;
+  remarks: string;
+  contact_status: boolean;
+}
+
+export interface EmploymentHistoryData {
+  employer_name: string;
+  job_title: string;
+  employment_type_id: number;
+  start_date: string;
+  end_date: string;
+  location: string;
+  responsibilities: string;
+  record_status_id: number;
+}
+
+export interface EducationBackgroundData {
+  educational_attainment_id: number;
+  record_status_id: number;
+  institution_name: string;
+  degree: string;
+  field_of_study: string;
+  start_year: string;
+  end_year: string;
+  institution_address: string;
+  honors_received: string;
+  remarks: string;
+}
+
+export interface SocialMediaAccountData {
+  platform_id: number;
+  handle: string;
+  profile_url: string;
+  is_primary_account: boolean;
+  record_status_id: number;
+}
+
+export interface DiagnosisData {
+  health_condition: string;
+  health_condition_category_id: number;
+  diagnosis_date: string;
+  description: string;
+  treatment_plan: string;
+  record_status_id: number;
+}
+
+export interface MediaData {
+  media_type: string; // e.g., "Picture"
+  picture_view: string; // e.g., "Profile"
+  media_description: string;
+  media_base64: string;
+  record_status_id: number;
+}
+
+export interface IdentifierData {
+  id_type_id: number;
+  id_number: string;
+  issued_by: string;
+  date_issued: string;
+  expiry_date: string;
+  place_issued: string;
+  record_status_id: number;
+}
+
+export interface MediaRequirementData {
+  record_status_id: number;
+  name: string;
+  direct_image: string;
+  issued_by: string;
+  date_issued: string;
+  expiry_date: string;
+  place_issued: string;
+}
+
+export type OTPAccount = {
+  id: number;
+  record_status: string;
+  created_at: string;        // ISO date string
+  updated_at: string;        // ISO date string
+  failed_attempts: number;
+  last_failed_at: string;    // ISO date string
+  locked_until: string;      // ISO date string
+  created_by: number;
+  updated_by: number;
+  user: number;
+};
+
+export type VisitorUpdatePayload = {
+  org_id: number;
+  jail_id: number;
+  verified_by_id: number;
+  approved_by_id: number;
+  person_id: number;
+  visitor_app_status_id: number;
+  visitor_type_id: number;
+  record_status_id: number;
+  remarks_data: {
+    record_status_id: number;
+    visitor: number;
+    remarks: string;
+  }[];
+  pdl_data: {
+    relationship_to_pdl_id: number;
+    pdl_id: number;
+    record_status_id: number;
+  }[];
+  verified_at: string; // ISO date string
+  approved_at: string; // ISO date string
+  id_number: string;
+  shortname: string;
+  visitor_have_twins: boolean;
+  visitor_twin_name: string;
+  visited_pdl_have_twins: boolean;
+  visited_pdl_twin_name: string;
+};
+
+export interface ServiceProviderPayload {
+  id: number;
+  created_by: string;
+  updated_by: string;
+  record_status: string;
+  visitor_type: string;
+  group_affiliation: string;
+  remarks: string;
+  remarks_many: string;
+  created_at: string; // ISO string format
+  updated_at: string; // ISO string format
+  sp_reg_no: string;
+  id_number: string;
+  verified_at: string; // ISO string format
+  approved_at: string; // ISO string format
+  person: number;
+  visitor_status: number;
+  verified_by: number;
+  approved_by: number;
+  serv_prov_type: number;
+  provided_service: number;
+}
+
+export interface NonPDLVisitorPayload {
+  id: number;
+  created_by: string;
+  updated_by: string;
+  person: string;
+  personnel: string;
+  non_pdl_visitor_type: string;
+  non_pdl_visitor_reason: string;
+  visitor_rel_personnel: string;
+  visitor_status: string;
+  record_status: string;
+  created_at: string; // ISO date string
+  updated_at: string; // ISO date string
+  reg_no: string;
+  id_number: string;
+  reason_notes: string;
+  verified_by: string;
+  verified_at: string; // ISO date string
+  approved_by: string;
+  approved_at: string; // ISO date string
+}

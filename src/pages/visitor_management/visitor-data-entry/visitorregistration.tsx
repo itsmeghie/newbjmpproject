@@ -173,8 +173,8 @@ const VisitorRegistration = () => {
     const [enrollLeftLittleFinger, setEnrollLeftLittleFinger] = useState<BiometricRecordFace>({
         remarks: "",
         person: 0,
-        biometric_type: "fingerprint", // Always face for this case
-        position: "finger_left_little", // Position for left little finger
+        biometric_type: "fingerprint", 
+        position: "finger_left_little", 
         place_registered: "Quezon City",
         upload_data: "",
     });

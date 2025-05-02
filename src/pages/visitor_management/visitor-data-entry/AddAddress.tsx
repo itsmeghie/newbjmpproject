@@ -4,6 +4,16 @@ import { JailBarangay, JailMunicipality, JailProvince, JailRegion } from "@/lib/
 import { Input, Select, message } from 'antd';
 import { MapContainer, TileLayer, useMap, Marker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import markerIcon from "@/assets/location_marker.png"
+import L from 'leaflet';
+
+const customMarkerIcon = new L.Icon({
+    iconUrl: markerIcon,
+    iconSize: [25, 41], // Default size for Leaflet markers
+    iconAnchor: [12, 41], // Anchor point of the icon
+    popupAnchor: [1, -34], // Popup position relative to the icon
+    shadowSize: [41, 41], // Default shadow size
+});
 
 type Country = {
     id: number;
@@ -522,7 +532,7 @@ const AddAddress = ({ setPersonForm, handleAddressCancel, countries, provinces, 
                                 <MapContainer center={[14.6760, 121.0437]} zoom={5} style={{ height: "290px", width: "100%" }}>
                                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                                     <FlyToLocation position={position} />
-                                    {position && <Marker position={position} />}
+                                    {position && <Marker position={position} icon={customMarkerIcon} />}
                                 </MapContainer>
                             </div>
                             <div className="flex items-center gap-5">

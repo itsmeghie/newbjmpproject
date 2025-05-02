@@ -1,5 +1,5 @@
-import { CourtBranch, CourtRecord, CrimeCategory, Ethnicities, GangAffiliation, Law, Offense, PDLtoVisit, Precinct, User, VisitorApplicationPayload, VisitorRecord } from "./definitions";
-import { MainGateLog, PersonnelForm, Relationship, Role, VisitLogForm } from "./issues-difinitions";
+import { CourtBranch, CourtRecord, CrimeCategory, Ethnicities, GangAffiliation, Law, Offense, PDLtoVisit, Precinct, User, VisitorRecord } from "./definitions";
+import { MainGateLog, NonPDLVisitorPayload, OTPAccount, PersonFormPayload, PersonnelForm, Relationship, Role, ServiceProviderPayload, VisitLogForm, VisitorUpdatePayload } from "./issues-difinitions";
 import { PDLs } from "./pdl-definitions";
 import { BASE_URL } from "./urls";
 
@@ -407,12 +407,30 @@ export const patchPersonnel = async (
     return res.json();
 };
 
+export const patchPerson = async (
+    token: string,
+    id: number,
+    data: Partial<PersonFormPayload>
+    ): Promise<PersonFormPayload> => {
+    const url = `${BASE_URL}/api/standards/persons/${id}/`;
+    const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${token}`,
+        },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Failed to update Person");
+    return res.json();
+};
+
 export const patchVisitor = async (
     token: string,
     id: number,
-    data: Partial<VisitorApplicationPayload>
-    ): Promise<VisitorApplicationPayload> => {
-    const url = `${BASE_URL}/api/standards/persons/${id}/`;
+    data: Partial<VisitorUpdatePayload>
+    ): Promise<VisitorUpdatePayload> => {
+    const url = `${BASE_URL}/api/visitors/visitor/${id}/`;
     const res = await fetch(url, {
         method: "PATCH",
         headers: {
@@ -559,6 +577,89 @@ export async function getVisitorStation(
     });
     if (!res.ok) {
         throw new Error("Failed to fetch Visitor Station data.");
+    }
+    return res.json();
+}
+
+export async function getOTP(
+    token: string
+    ): Promise<OTPAccount[]> {
+    const res = await fetch(`${BASE_URL}/api/login_v2/account-lockouts/`, {
+        headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${token}`,
+        },
+    });
+    if (!res.ok) {
+        throw new Error("Failed to fetch OTP data.");
+    }
+    return res.json();
+}
+
+export const deleteOTP = async (token: string, id: number) => {
+    const response = await fetch(
+        `${BASE_URL}/api/login_v2/account-lockouts/${id}/`,
+        {
+        method: "DELETE",
+        headers: {
+            Authorization: `Token ${token}`,
+        },
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to delete OTP");
+    }
+
+    const text = await response.text();
+    return text ? JSON.parse(text) : {};
+};
+
+export async function getService_Provider(
+    token: string
+    ): Promise<ServiceProviderPayload[]> {
+    const res = await fetch(`${BASE_URL}/api/service-providers/service-providers/`, {
+        headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${token}`,
+        },
+    });
+    if (!res.ok) {
+        throw new Error("Failed to fetch Services Provider data.");
+    }
+    return res.json();
+}
+
+export const deleteServiceProvider = async (token: string, id: number) => {
+    const response = await fetch(
+        `${BASE_URL}/api/service-providers/service-providers/${id}/`,
+        {
+        method: "DELETE",
+        headers: {
+            Authorization: `Token ${token}`,
+        },
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to delete Service Provider");
+    }
+
+    const text = await response.text();
+    return text ? JSON.parse(text) : {};
+};
+
+export async function getNonPDL_Visitor(
+    token: string
+    ): Promise<NonPDLVisitorPayload[]> {
+    const res = await fetch(`${BASE_URL}/api/non-pdl-visitor/non-pdl-visitors/`, {
+        headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${token}`,
+        },
+    });
+    if (!res.ok) {
+        throw new Error("Failed to fetch Non-PDL Visitor data.");
     }
     return res.json();
 }

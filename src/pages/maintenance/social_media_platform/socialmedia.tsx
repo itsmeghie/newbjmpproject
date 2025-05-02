@@ -121,12 +121,13 @@ const SocialMedia = () => {
         },
     ];
 
-        const handleExportExcel = () => {
-            const ws = XLSX.utils.json_to_sheet(dataSource);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "SocialMediaPlatform");
-            XLSX.writeFile(wb, "SocialMediaPlatform.xlsx");
-        };
+    const handleExportExcel = () => {
+        const exportData = dataSource.map(({ id, updated_by, organization, ...rest }) => rest); 
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "SocialMedia");
+        XLSX.writeFile(wb, "SocialMedia.xlsx");
+    };
     
         const handleExportPDF = () => {
             const doc = new jsPDF();
@@ -228,7 +229,7 @@ const SocialMedia = () => {
                     <a onClick={handleExportExcel}>Export Excel</a>
                 </Menu.Item>
                 <Menu.Item>
-                    <CSVLink data={dataSource} filename="SocialMediaPlatform.csv">
+                    <CSVLink data={dataSource.map(({ id, organization,updated_by, ...rest }) => rest)} filename="SocialMediaPlatform.csv">
                         Export CSV
                     </CSVLink>
                 </Menu.Item>

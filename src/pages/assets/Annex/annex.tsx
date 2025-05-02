@@ -48,10 +48,10 @@ const Annex = () => {
             mutationFn: (id: number) => deleteDetention_Building(token ?? "", id),
             onSuccess: () => {
                 queryClient.invalidateQueries({ queryKey: ["detention-building"] });
-                messageApi.success("ANNEX deleted successfully");
+                messageApi.success("Level deleted successfully");
             },
             onError: (error: any) => {
-                messageApi.error(error.message || "Failed to delete ANNEX");
+                messageApi.error(error.message || "Failed to delete Level");
             },
         });
     
@@ -127,7 +127,8 @@ const Annex = () => {
         ];
 
         const handleExportExcel = () => {
-            const ws = XLSX.utils.json_to_sheet(dataSource);
+            const exportData = dataSource.map(({ id, updated_by, organization, ...rest }) => rest); 
+            const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Level");
             XLSX.writeFile(wb, "Level.xlsx");
@@ -160,7 +161,7 @@ const Annex = () => {
             
                 doc.setTextColor(0, 102, 204);
                 doc.setFontSize(16);
-                doc.text("Annex Report", 10, 15); 
+                doc.text("Level Report", 10, 15); 
                 doc.setTextColor(0, 0, 0);
                 doc.setFontSize(10);
                 doc.text(`Organization Name: ${organizationName}`, 10, 25);
@@ -234,7 +235,7 @@ const Annex = () => {
                     <a onClick={handleExportExcel}>Export Excel</a>
                 </Menu.Item>
                 <Menu.Item>
-                    <CSVLink data={dataSource} filename="Level.csv">
+                    <CSVLink data={dataSource.map(({ id, organization, updated_by, ...rest }) => rest)} filename="Level.csv">
                         Export CSV
                     </CSVLink>
                 </Menu.Item>
@@ -285,7 +286,7 @@ const Annex = () => {
                     />
                 </div>
                 <Modal
-                title="Annex Report"
+                title="Level Report"
                 open={isPdfModalOpen}
                 onCancel={handleClosePdfModal}
                 footer={null}

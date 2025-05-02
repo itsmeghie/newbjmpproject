@@ -136,11 +136,12 @@ const Users = () => {
   ];
 
   const handleExportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(dataSource);
+    const exportData = dataSource.map(({ id, organization, group, ...rest }) => rest); 
+    const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "User");
     XLSX.writeFile(wb, "User.xlsx");
-  };
+};
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
@@ -243,7 +244,7 @@ const handleClosePdfModal = () => {
             <a onClick={handleExportExcel}>Export Excel</a>
         </Menu.Item>
         <Menu.Item>
-            <CSVLink data={dataSource} filename="User.csv">
+            <CSVLink data={dataSource.map(({ id, organization,group, ...rest }) => rest)} filename="User.csv">
                 Export CSV
             </CSVLink>
         </Menu.Item>

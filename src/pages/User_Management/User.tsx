@@ -17,7 +17,7 @@ const User = () => {
                                     <GodotLink link="" title="Role Levels" />
                                     <GodotLink link="" title="Menu Items" />
                                     <GodotLink link="" title="Access Matrix" />
-                                    <GodotLink link="" title="User OTP Account Lockout" />
+                                    <GodotLink link="user-otp-account" title="User OTP Account Lockout" />
                                     <GodotLink link="" title="User bridge / Junction" />
                                 </div>
                             </div>

@@ -62,7 +62,7 @@ const JailSecurityLevel = () => {
             setIsModalOpen(false);
         };
 
-    const dataSource = data?.map((jailsecurity, index) => (
+    const dataSource = data?.map((jailsecurity: JailSecurityLevelReport, index:any) => (
         {
             key: index + 1,
             id: jailsecurity?.id,
@@ -122,7 +122,8 @@ const JailSecurityLevel = () => {
     ];
 
     const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dataSource);
+        const exportData = dataSource.map(({ id, updated, organization, ...rest }) => rest); 
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "SecurityLevel");
         XLSX.writeFile(wb, "SecurityLevel.xlsx");
@@ -228,7 +229,7 @@ const JailSecurityLevel = () => {
                 <a onClick={handleExportExcel}>Export Excel</a>
             </Menu.Item>
             <Menu.Item>
-                <CSVLink data={dataSource} filename="SecurityLevel.csv">
+                <CSVLink data={dataSource.map(({ id, organization, updated, ...rest }) => rest)} filename="SecurityLevel.csv">
                     Export CSV
                 </CSVLink>
             </Menu.Item>

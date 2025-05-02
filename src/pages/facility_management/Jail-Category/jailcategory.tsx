@@ -124,7 +124,8 @@ const JailCategory = () => {
     ];
     
     const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dataSource);
+        const exportData = dataSource.map(({ id, updated, organization, ...rest }) => rest); 
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "JailCategory");
         XLSX.writeFile(wb, "JailCategory.xlsx");
@@ -230,7 +231,7 @@ const JailCategory = () => {
                 <a onClick={handleExportExcel}>Export Excel</a>
             </Menu.Item>
             <Menu.Item>
-                <CSVLink data={dataSource} filename="JailCategory.csv">
+                <CSVLink data={dataSource.map(({ id, organization,updated, ...rest }) => rest)} filename="JailCategory.csv">
                     Export CSV
                 </CSVLink>
             </Menu.Item>

@@ -22,15 +22,24 @@ type CardTypes = {
     link: string;
 }
 const Cards = ({title, image, link}: CardTypes) => {
+    const isDisabled = link === '';
+
     return (
         <div>
             
-                <div className="min-w-32 w-48 flex-1 h-[10rem] bg-white/25 rounded-[10px] text-[#272727] text-center transition-all hover:scale-105 ease-in-out shadow-lg border border-gray-200">
+                <div className={`min-w-32 w-48 flex-1 h-[10rem] rounded-[10px] text-[#272727] text-center shadow-lg border border-gray-200 transition-all ${isDisabled ? 'bg-gray-200 cursor-not-allowed' : 'bg-white/25 hover:scale-105 ease-in-out'}`}>
                     <div className="flex flex-col items-center justify-center py-5 px-4 gap-2">
-                        <NavLink to={link}>
+                        {isDisabled ? (
+                        <div className='flex items-center justify-center flex-col'>
+                            <img src={image} alt={title} className="opacity-50" />
+                            <h1 className="font-semibold text-gray-500">{title}</h1>
+                        </div>
+                        ) : (
+                        <NavLink to={link} className="flex flex-col items-center gap-2">
                             <img src={image} alt={title} />
+                            <h1 className="font-semibold">{title}</h1>
                         </NavLink>
-                        <h1 className="font-semibold">{title}</h1>
+                        )}
                     </div>
                 </div>
             
@@ -44,7 +53,7 @@ const Home1 = () => {
             <Cards link='/jvms/registration' title="Registration" image={registration} />
             <Cards link='/jvms/users' title="Administration" image={administration} />
             <Cards link='/jvms/dashboard' title='Statistic Dashboard' image={statistic} />
-            <Cards link='' title='Alpha List' image={alpha} />
+            <Cards link='/jvms/alpha-list' title='Alpha List' image={alpha} />
             <Cards link='/jvms/log-monitoring' title='Log Monitoring' image={log} />
             <Cards link='/jvms/reports' title='Status Reports' image={status} />
             <Cards link='/jvms/screening' title='Scanner' image={scanner} />

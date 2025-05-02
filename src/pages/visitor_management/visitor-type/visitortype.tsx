@@ -122,7 +122,8 @@ const VisitorType = () => {
     ];
 
     const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dataSource);
+        const exportData = dataSource.map(({ id, updated_by, organization, ...rest }) => rest); 
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "VisitorType");
         XLSX.writeFile(wb, "VisitorType.xlsx");
@@ -228,7 +229,7 @@ const VisitorType = () => {
                 <a onClick={handleExportExcel}>Export Excel</a>
             </Menu.Item>
             <Menu.Item>
-                <CSVLink data={dataSource} filename="VisitorType.csv">
+                <CSVLink data={dataSource.map(({ id, organization,updated_by, ...rest }) => rest)} filename="VisitorType.csv">
                     Export CSV
                 </CSVLink>
             </Menu.Item>
@@ -295,12 +296,12 @@ const VisitorType = () => {
                 )}
             </Modal>
             <Modal
-              className="overflow-y-auto rounded-lg scrollbar-hide"
-              title="Add Visitor Type"
-              open={isModalOpen}
-              onCancel={handleCancel}
-              footer={null}
-              style={{  overflowY: "auto" }} 
+                className="overflow-y-auto rounded-lg scrollbar-hide"
+                title="Add Visitor Type"
+                open={isModalOpen}
+                onCancel={handleCancel}
+                footer={null}
+                style={{  overflowY: "auto" }} 
             >
             <AddVisitorType onClose={handleCancel} />
             </Modal>

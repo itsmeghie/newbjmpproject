@@ -187,7 +187,8 @@ const RecommendedAction = () => {
     ]
 
     const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dataSource);
+        const exportData = dataSource.map(({ id, updated, organization, ...rest }) => rest); 
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "RecommendedAction");
         XLSX.writeFile(wb, "RecommendedAction.xlsx");
@@ -293,7 +294,7 @@ const RecommendedAction = () => {
                 <a onClick={handleExportExcel}>Export Excel</a>
             </Menu.Item>
             <Menu.Item>
-                <CSVLink data={dataSource} filename="RecommendedAction.csv">
+                <CSVLink data={dataSource.map(({ id, organization,updated, ...rest }) => rest)} filename="RecommendedAction.csv">
                     Export CSV
                 </CSVLink>
             </Menu.Item>

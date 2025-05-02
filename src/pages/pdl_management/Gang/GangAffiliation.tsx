@@ -166,7 +166,8 @@ const GangAffiliation = () => {
             },
         ];
         const handleExportExcel = () => {
-            const ws = XLSX.utils.json_to_sheet(dataSource);
+            const exportData = dataSource.map(({ id, updated, organization, ...rest }) => rest); 
+            const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "GangAffiliation");
             XLSX.writeFile(wb, "GangAffiliation.xlsx");
@@ -272,7 +273,7 @@ const GangAffiliation = () => {
                     <a onClick={handleExportExcel}>Export Excel</a>
                 </Menu.Item>
                 <Menu.Item>
-                    <CSVLink data={dataSource} filename="GangAffiliation.csv">
+                    <CSVLink data={dataSource.map(({ id, organization,updated, ...rest }) => rest)} filename="GangAffiliation.csv">
                         Export CSV
                     </CSVLink>
                 </Menu.Item>

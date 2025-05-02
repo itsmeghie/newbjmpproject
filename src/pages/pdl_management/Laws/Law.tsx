@@ -200,7 +200,8 @@ const Law = () => {
     };
 
     const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dataSource);
+        const exportData = dataSource.map(({ id, updated, organization, ...rest }) => rest); 
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Law");
         XLSX.writeFile(wb, "Law.xlsx");
@@ -288,7 +289,7 @@ const Law = () => {
                 <a onClick={handleExportExcel}>Export Excel</a>
             </Menu.Item>
             <Menu.Item>
-                <CSVLink data={dataSource} filename="Law.csv">
+                <CSVLink data={dataSource.map(({ id, organization,updated, ...rest }) => rest)} filename="Law.csv">
                     Export CSV
                 </CSVLink>
             </Menu.Item>
@@ -326,7 +327,7 @@ const Law = () => {
                     </button>
                 </div>
             </div>
-        <Table columns={columns} dataSource={dataSource} />
+        <Table columns={columns} dataSource={filteredData} />
         <Modal
                 title="Law Report"
                 open={isPdfModalOpen}

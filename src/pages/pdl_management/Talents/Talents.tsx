@@ -117,7 +117,8 @@ const Talents = () => {
         },
     ]
     const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dataSource);
+        const exportData = dataSource.map(({ id, updated_by, organization, ...rest }) => rest); 
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Talents");
         XLSX.writeFile(wb, "Talents.xlsx");
@@ -223,7 +224,7 @@ const Talents = () => {
                 <a onClick={handleExportExcel}>Export Excel</a>
             </Menu.Item>
             <Menu.Item>
-                <CSVLink data={dataSource} filename="Talents.csv">
+                <CSVLink data={dataSource.map(({ id, organization,updated_by, ...rest }) => rest)} filename="Talents.csv">
                     Export CSV
                 </CSVLink>
             </Menu.Item>

@@ -2,7 +2,7 @@ import { MultiBirthSiblingForm as MultiBirthSiblingFormType, PersonForm } from "
 import { Modal, Table } from "antd"
 import { ColumnsType } from "antd/es/table"
 import { Plus } from "lucide-react"
-import { Dispatch, SetStateAction, useState } from "react"
+import { Dispatch, SetStateAction, useEffect, useState } from "react"
 import { AiOutlineDelete, AiOutlineEdit } from "react-icons/ai"
 import MultiBirthSiblingForm from "./MultiBirthSiblingForm"
 import { Gender, Person } from "@/lib/pdl-definitions"
@@ -67,7 +67,6 @@ const MultipleBirthSiblings = ({
     const [tableInfo, setTableInfo] = useState<MultiBirthSibling>([])
 
     const handleEditMultipleBirthSibling = (index: number, updatedData: MultiBirthSiblingFormType) => {
-        // Update the personForm
         setPersonForm(prev => {
             const updatedSiblings = [...(prev.multiple_birth_sibling_data || [])];
             updatedSiblings[index] = updatedData;
@@ -76,13 +75,17 @@ const MultipleBirthSiblings = ({
                 multiple_birth_sibling_data: updatedSiblings
             };
         });
-
-        // Update the table info
+    
         setTableInfo(prev => {
             const updatedTableInfo = [...(prev || [])];
             const chosenSibling = persons?.find(person => person?.id === updatedData.person_id);
+    
+            const birthClassLabel = birthClassTypes.find(
+                type => type.id === updatedData.multiple_birth_class_id
+            )?.term_for_sibling_group || "";
+    
             updatedTableInfo[index] = {
-                sibling_group: chosenSibling?.multiple_birth_siblings?.[0]?.multiple_birth_class || "",
+                sibling_group: birthClassLabel,
                 short_name: chosenSibling?.shortname || "",
                 gender: chosenSibling?.gender?.gender_option || "",
                 identical: updatedData?.is_identical ? "Yes" : "No",
@@ -91,6 +94,38 @@ const MultipleBirthSiblings = ({
             return updatedTableInfo;
         });
     };
+    
+    useEffect(() => {
+        if (
+            !personForm?.multiple_birth_sibling_data ||
+            !Array.isArray(personForm.multiple_birth_sibling_data) ||
+            persons.length === 0 ||
+            birthClassTypes.length === 0
+        ) {
+            setTableInfo([]);
+            return;
+        }
+    
+        const transformed = personForm.multiple_birth_sibling_data.map((sibling) => {
+            const person = persons.find(p => p.id === sibling.person_id);
+            const classification = birthClassTypes.find(type => type.id === sibling.multiple_birth_class_id);
+    
+            return {
+                sibling_group: classification?.term_for_sibling_group || "N/A",
+                short_name: person?.shortname || "N/A",
+                gender: person?.gender?.gender_option || "N/A",
+                identical: sibling.is_identical ? "Yes" : "No",
+                verified: sibling.is_verified ? "Yes" : "No",
+            };
+        });
+    
+        setTableInfo(transformed);
+    }, [
+        personForm.multiple_birth_sibling_data,
+        persons,
+        birthClassTypes
+    ]);
+    
 
     const IdentifierDataSource = tableInfo?.map((info, index) => {
         return ({

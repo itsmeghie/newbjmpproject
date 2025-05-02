@@ -154,7 +154,8 @@ const Level = () => {
     ];
 
     const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dataSource);
+        const exportData = dataSource.map(({ id,record_status, updated_by, organization, ...rest }) => rest); 
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Annex");
         XLSX.writeFile(wb, "Annex.xlsx");
@@ -187,7 +188,7 @@ const Level = () => {
         
             doc.setTextColor(0, 102, 204);
             doc.setFontSize(16);
-            doc.text("Level Report", 10, 15); 
+            doc.text("Annex Report", 10, 15); 
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(10);
             doc.text(`Organization Name: ${organizationName}`, 10, 25);
@@ -212,7 +213,7 @@ const Level = () => {
             const pageData = tableData.slice(i, i + maxRowsPerPage);
     
             autoTable(doc, { 
-                head: [['No.', 'Level No.', 'Level', 'Building', 'Status']],
+                head: [['No.', 'Annex No.', 'Annex', 'Building', 'Status']],
                 body: pageData,
                 startY: startY,
                 margin: { top: 0, left: 10, right: 10 },
@@ -262,7 +263,7 @@ const Level = () => {
                 <a onClick={handleExportExcel}>Export Excel</a>
             </Menu.Item>
             <Menu.Item>
-                <CSVLink data={dataSource} filename="Floor.csv">
+                <CSVLink data={dataSource.map(({ id, record_status, organization,updated_by, ...rest }) => rest)}filename="Floor.csv">
                     Export CSV
                 </CSVLink>
             </Menu.Item>

@@ -161,7 +161,8 @@ const ImpactLevel = () => {
         },
     ];
     const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dataSource);
+        const exportData = dataSource.map(({ id, updated, organization, ...rest }) => rest); 
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "ImpactLevel");
         XLSX.writeFile(wb, "ImpactLevel.xlsx");
@@ -267,7 +268,7 @@ const ImpactLevel = () => {
                 <a onClick={handleExportExcel}>Export Excel</a>
             </Menu.Item>
             <Menu.Item>
-                <CSVLink data={dataSource} filename="ImpactLevel.csv">
+                <CSVLink data={dataSource.map(({ id, organization,updated, ...rest }) => rest)} filename="ImpactLevel.csv">
                     Export CSV
                 </CSVLink>
             </Menu.Item>

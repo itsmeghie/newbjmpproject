@@ -185,7 +185,7 @@ const IdForm = ({ setPersonForm, idTypes, handleIdsModalCancel, editRequirement,
     useEffect(() => {
         if (editRequirement) {
             setIdForm(editRequirement);
-            if (editRequirement.media_data.media_base64) {
+            if (editRequirement?.media_data?.media_base64) {
                 setFileList([
                     {
                         uid: '-1',

@@ -1,36 +1,31 @@
-import { DatePicker, Input, message, Modal, Select, Spin, Table } from "antd";
-import { Plus } from "lucide-react";
-import { AiOutlineDelete, AiOutlineEdit } from "react-icons/ai";
-import AddAddress from "../visitor-data-entry/AddAddress";
-import { useEffect, useState } from "react";
-import VisitorProfile from "../visitor-data-entry/visitorprofile";
-import PDLtovisit from "../visitor-data-entry/PDLtovisit";
-import Issue from "../visitor-data-entry/Issue";
-import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
-import {
-    getAffiliationTypes, getCivilStatus, getCountries, getCurrentUser, getGenders, getJail_Barangay,
-    getJail_Municipality, getJail_Province, getJailRegion, getMultipleBirthClassTypes, getNationalities,
-    getPrefixes, getRealPerson, getSuffixes, getUsers, getVisitor_Type, getVisitorAppStatus
-} from "@/lib/queries";
-import { useTokenStore } from "@/store/useTokenStore";
-import { PersonForm, VisitorForm } from "@/lib/visitorFormDefinition";
 import { calculateAge } from "@/functions/calculateAge";
-import { ColumnsType } from "antd/es/table";
-import ContactForm from "../visitor-data-entry/ContactForm";
-import MultipleBirthSiblings from "../visitor-data-entry/MultipleBirthSiblings";
-import Remarks from "../visitor-data-entry/Remarks";
+import { getPDLVisitStatuses } from "@/lib/additionalQueries";
+import { getCivilStatus, getCountries, getCourtBranches, getCrimeCategories, getCurrentUser, getDetention_Building, getDetention_Floor, getDetentionCell, getEducationalAttainments, getEthnicityProvinces, getGangAffiliation, getGenders, getInterests, getJail_Barangay, getJail_Municipality, getJail_Province, getJailRegion, getLaws, getLooks, getMultipleBirthClassTypes, getNationalities, getOccupations, getOffenses, getPrecincts, getPrefixes, getRealPerson, getReligion, getSkills, getSuffixes, getTalents } from "@/lib/queries";
 import { BiometricRecordFace } from "@/lib/scanner-definitions";
 import { BASE_URL, BIOMETRIC, PERSON } from "@/lib/urls";
-import { downloadBase64Image } from "@/functions/dowloadBase64Image";
-import { useLocation, useNavigate } from "react-router-dom";
+import { PDLForm, PersonForm } from "@/lib/visitorFormDefinition";
+import CaseDetails from "@/pages/visitor_management/pdl-data-entry/CaseDetails";
+import EducAttainment from "@/pages/visitor_management/pdl-data-entry/EducAttainment";
+// import FMC from "@/pages/visitor_management/pdl-data-entry/FMC";
+import PdlVisitor from "@/pages/visitor_management/pdl-data-entry/PdlVisitor";
+import AddAddress from "@/pages/visitor_management/visitor-data-entry/AddAddress";
+import ContactForm from "@/pages/visitor_management/visitor-data-entry/ContactForm";
+import Issue from "@/pages/visitor_management/visitor-data-entry/Issue";
+import MultipleBirthSiblings from "@/pages/visitor_management/visitor-data-entry/MultipleBirthSiblings";
+import Remarks from "@/pages/visitor_management/visitor-data-entry/Remarks";
+import VisitorProfile from "@/pages/visitor_management/visitor-data-entry/visitorprofile";
+import { useTokenStore } from "@/store/useTokenStore";
+import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
+import { DatePicker, Input, message, Modal, Select, Table } from "antd";
+import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AiOutlineEdit, AiOutlineDelete } from "react-icons/ai";
+import { useLocation } from "react-router-dom";
 import dayjs from "dayjs";
-import { RxDoubleArrowLeft } from "react-icons/rx";
-import moment from "moment";
-import RemarksForm from "../visitor-data-entry/RemarksForm";
-import { RemarksForm as RemarksFormType } from "@/lib/visitorFormDefinition";
+import { ColumnsType } from "antd/es/table";
 
 const patchPerson = async (payload: PersonForm, token: string, id: string) => {
-    const res = await fetch(`${PERSON.postPERSON}${id}/`, {
+    const res = await fetch(`${PERSON.postPERSON}${id}/`, { 
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",
@@ -47,26 +42,28 @@ const patchPerson = async (payload: PersonForm, token: string, id: string) => {
     return res.json();
 };
 
-const patchVisitor = async (visitor: VisitorForm ,token: string, id: number,) => {
-    const res = await fetch(`${BASE_URL}/api/visitors/visitor/${id}/`, {
+const patchPdl = async (pdl: PDLForm, token: string, id: string) => {
+    const res = await fetch(`${BASE_URL}/api/pdls/pdl/${id}/`, { 
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",
             Authorization: `Token ${token}`,
         },
-        body: JSON.stringify(visitor)
-    })
+        body: JSON.stringify(pdl),
+    });
 
     if (!res.ok) {
         const errorData = await res.json();
         throw new Error(JSON.stringify(errorData));
     }
 
-    return res.json()
-}
+    return res.json();
+};
+
 
 const enrollBiometrics = async (
     enrollForm: BiometricRecordFace
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any> => {
     const response = await fetch(BIOMETRIC.ENROLL, {
         method: "POST",
@@ -83,24 +80,18 @@ const enrollBiometrics = async (
     return response.json();
 };
 
-type RemarkProps = {
-    remarks: string;
-    create_at?: string;
-    created_by?: string;
-};
 
-const VisitorRegistration = () => {
-    const token = useTokenStore()?.token
+const UpdatePDL = () => {
+    const token = useTokenStore()?.token;
+    const location = useLocation();
+    const pdl = location.state?.pdl;
+
     const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
-    const [isRemarksModalOpen, setIsRemarksModalOpen] = useState(false);
-    const location = useLocation();
-    const navigate = useNavigate();
-    const visitor = location.state?.visitor;
+
     const [editAddressIndex, setEditAddressIndex] = useState<number | null>(null);
     const [editContactIndex, setEditContactIndex] = useState<number | null>(null);
-    const [editPdlToVisitIndex, setEditPdlToVisitIndex] = useState<number | null>(null);
-    const [editRemarksIndex, setEditRemarksIndex] = useState<number | null>(null);
+
     const [personForm, setPersonForm] = useState<PersonForm>({
         first_name: "",
         middle_name: "",
@@ -125,34 +116,30 @@ const VisitorRegistration = () => {
         media_requirement_data: [],
         diagnosis_data: [],
         religion_id: 1,
+        media_data: [],
         multiple_birth_sibling_data: [],
-        affiliation_id: [],
     })
-    const [visitorForm, setVisitorForm] = useState<VisitorForm>({
-        created_by: "",
-        create_at: "",
-        approved_at: "",
-        approved_by: 1,
-        approved_by_id: 1,
-        id_number: null,
+    const [pdlForm, setPdlForm] = useState<PDLForm>({
+        date_of_admission: "2025-04-10",
+        case_data: [],
+        gang_affiliation_id: null,
         jail_id: 1,
         org_id: 1,
-        pdl_data: [],
+        occupation_id: null,
         person_id: null,
-        record_status_id: 1,
-        remarks: "",
+        status: "Under Trial",
+        visitor_ids: [],
+        pdl_alias: "",
+        time_arrested: "",
         remarks_data: [],
-        shortname: "",
-        verified_at: "",
-        verified_by: 1,
-        verified_by_id: 1,
-        visited_pdl_have_twins: false,
-        visited_pdl_twin_name: "",
-        visitor_app_status_id: null,
-        visitor_have_twins: false,
-        visitor_reg_no: 1,
-        visitor_twin_name: "",
-        visitor_type_id: 1,
+        look_id: null,
+        person_relationship_data: [],
+        visitor: [],
+        precinct_id: null,
+        building_id: null,
+        cell_id: null,
+        floor_id: null,
+        visitation_status_id: null,
     })
 
     const [icao, setIcao] = useState("")
@@ -167,6 +154,7 @@ const VisitorRegistration = () => {
             upload_data: icao ?? "",
         }
     )
+
     const [enrollFormLeftIris, setEnrollFormLeftIris] = useState<BiometricRecordFace>(
         {
             remarks: "",
@@ -295,14 +283,6 @@ const VisitorRegistration = () => {
         setIsContactModalOpen(false);
     };
 
-    const showRemarksModal = () => {
-        setIsRemarksModalOpen(true);
-    };
-
-    const handleRemarksCancel = () => {
-        setIsRemarksModalOpen(false);
-    };
-
     //Edit Handlers
     const handleEditAddress = (index: number) => {
         setEditAddressIndex(index);
@@ -312,11 +292,6 @@ const VisitorRegistration = () => {
     const handleEditContact = (index: number) => {
         setEditContactIndex(index);
         setIsContactModalOpen(true);
-    };
-
-    const handleEditRemarks = (index: number) => {
-        setEditRemarksIndex(index);
-        setIsRemarksModalOpen(true);
     };
 
     //Delete Handlers
@@ -334,13 +309,6 @@ const VisitorRegistration = () => {
         }));
     };
 
-    const handleDeleteRemarks = (indexToDelete: number) => {
-        setVisitorForm(prev => ({
-            ...prev,
-            remarks_data: prev.remarks_data.filter((_, i) => i !== indexToDelete),
-            }));
-        };
-
     const handleDeleteMultipleBirthSibling = (indexToDelete: number) => {
         setPersonForm(prev => ({
             ...prev,
@@ -348,29 +316,8 @@ const VisitorRegistration = () => {
         }));
     };
 
-    const deletePdlToVisit = (index: number) => {
-        setVisitorForm(prev => ({
-            ...prev,
-            pdl_data: prev?.pdl_data?.filter((_, i) => i !== index)
-        }));
-    };
-
-    const deleteMediaIdentifierByIndex = (index: number) => {
-        setPersonForm(prev => ({
-            ...prev,
-            media_identifier_data: prev?.media_identifier_data?.filter((_, i) => i !== index),
-        }));
-    };
-
-    const deleteMediaRequirementByIndex = (index: number) => {
-        setPersonForm(prev => ({
-            ...prev,
-            media_requirement_data: prev?.media_requirement_data?.filter((_, i) => i !== index),
-        }));
-    };
-
     const deleteRemarksByIndex = (index: number) => {
-        setVisitorForm(prev => ({
+        setPdlForm(prev => ({
             ...prev,
             remarks_data: prev?.remarks_data?.filter((_, i) => i !== index),
         }))
@@ -379,8 +326,8 @@ const VisitorRegistration = () => {
     const dropdownOptions = useQueries({
         queries: [
             {
-                queryKey: ['visitor-type'],
-                queryFn: () => getVisitor_Type(token ?? ""),
+                queryKey: ['detention-cell-dorm'],
+                queryFn: () => getDetentionCell(token ?? ""),
                 staleTime: 10 * 60 * 1000
             },
             {
@@ -399,8 +346,8 @@ const VisitorRegistration = () => {
                 staleTime: 10 * 60 * 1000
             },
             {
-                queryKey: ['affiliations'],
-                queryFn: () => getAffiliationTypes(token ?? ""),
+                queryKey: ['religion'],
+                queryFn: () => getReligion(token ?? ""),
                 staleTime: 10 * 60 * 1000
             },
             {
@@ -434,13 +381,13 @@ const VisitorRegistration = () => {
                 staleTime: 10 * 60 * 1000
             },
             {
-                queryKey: ['users'],
-                queryFn: () => getUsers(token ?? ""),
+                queryKey: ['talents'],
+                queryFn: () => getTalents(token ?? ""),
                 staleTime: 10 * 60 * 1000
             },
             {
-                queryKey: ['visitor-app-status'],
-                queryFn: () => getVisitorAppStatus(token ?? ""),
+                queryKey: ['skills'],
+                queryFn: () => getSkills(token ?? ""),
                 staleTime: 10 * 60 * 1000
             },
             {
@@ -463,7 +410,114 @@ const VisitorRegistration = () => {
                 queryFn: () => getMultipleBirthClassTypes(token ?? ""),
                 staleTime: 10 * 60 * 1000
             },
+            {
+                queryKey: ['interests'],
+                queryFn: () => getInterests(token ?? ""),
+                staleTime: 10 * 60 * 1000
+            },
+            {
+                queryKey: ['detention-building-level'],
+                queryFn: () => getDetention_Building(token ?? ""),
+                staleTime: 10 * 60 * 1000
+            },
+            {
+                queryKey: ['detention-floor-annex'],
+                queryFn: () => getDetention_Floor(token ?? ""),
+                staleTime: 10 * 60 * 1000
+            },
         ]
+    })
+
+    const dorms = dropdownOptions?.[0]?.data
+    const genders = dropdownOptions?.[1]?.data
+    const nationalities = dropdownOptions?.[2]?.data
+    const nationalitiesLoading = dropdownOptions?.[2]?.isLoading
+    const civilStatuses = dropdownOptions?.[3]?.data
+    const religions = dropdownOptions?.[4]?.data
+    const religionsLoading = dropdownOptions?.[4]?.isLoading
+    const regions = dropdownOptions?.[5]?.data
+    const provinces = dropdownOptions?.[6]?.data
+    const municipalities = dropdownOptions?.[7]?.data
+    const barangays = dropdownOptions?.[8]?.data
+    const countries = dropdownOptions?.[9]?.data
+    const persons = dropdownOptions?.[10]?.data
+    const personsLoading = dropdownOptions?.[10]?.isLoading
+    const talents = dropdownOptions?.[11]?.data
+    const talentsLoading = dropdownOptions?.[11]?.isLoading
+    const skills = dropdownOptions?.[12]?.data
+    const skillsLoading = dropdownOptions?.[12]?.isLoading
+    const currentUser = dropdownOptions?.[13]?.data
+    const prefixes = dropdownOptions?.[14]?.data
+    const prefixesLoading = dropdownOptions?.[14]?.isLoading
+    const suffixes = dropdownOptions?.[15]?.data
+    const suffixesLoading = dropdownOptions?.[15]?.isLoading
+    const birthClassTypes = dropdownOptions?.[16]?.data
+    const birthClassTypesLoading = dropdownOptions?.[16]?.isLoading
+    const interests = dropdownOptions?.[17]?.data
+    const interestsLoading = dropdownOptions?.[17]?.isLoading
+    const levels = dropdownOptions?.[18]?.data
+    const levelsLoading = dropdownOptions?.[18]?.isLoading
+    const annex = dropdownOptions?.[19]?.data
+    const annexLoading = dropdownOptions?.[19]?.isLoading
+
+    const { data: ethnicitiesProvinces, isLoading: ethnicitiesProvincesLoading } = useQuery({
+        queryKey: ['enthinicity'],
+        queryFn: () => getEthnicityProvinces(token ?? ""),
+        staleTime: 10 * 60 * 1000
+    })
+
+    const { data: gangAffiliation, isLoading: gangAffiliationLoading } = useQuery({
+        queryKey: ['gang-affiliation'],
+        queryFn: () => getGangAffiliation(token ?? ""),
+        staleTime: 10 * 60 * 1000
+    })
+
+    const { data: occupations, isLoading: occupationsLoading } = useQuery({
+        queryKey: ['gang-occupations'],
+        queryFn: () => getOccupations(token ?? ""),
+        staleTime: 10 * 60 * 1000
+    })
+
+    const { data: looks, isLoading: looksLoading } = useQuery({
+        queryKey: ['looks'],
+        queryFn: () => getLooks(token ?? ""),
+        staleTime: 10 * 60 * 1000
+    })
+
+    const { data: precincts, isLoading: precinctsLoading } = useQuery({
+        queryKey: ['precincts'],
+        queryFn: () => getPrecincts(token ?? ""),
+        staleTime: 10 * 60 * 1000
+    })
+
+    const { data: pdlVisitStatuses, isLoading: pdlVisitStatusesLoading } = useQuery({
+        queryKey: ['visitation-statuses'],
+        queryFn: () => getPDLVisitStatuses(token ?? "")
+    })
+
+    const { data: attainments } = useQuery({
+        queryKey: ["education-attainment"],
+        queryFn: () => getEducationalAttainments(token ?? ""),
+    });
+
+    const { data: courtBranches } = useQuery({
+        queryKey: ['court-branches'],
+        queryFn: () => getCourtBranches(token ?? "")
+    })
+
+    const { data: offenses } = useQuery({
+        queryKey: ['offenses'],
+        queryFn: () => getOffenses(token ?? "")
+    })
+
+    const { data: crimeCategories } = useQuery({
+        queryKey: ['crime-categories'],
+        queryFn: () => getCrimeCategories(token ?? "")
+    })
+
+    const { data: laws } = useQuery({
+        queryKey: ['laws'],
+        queryFn: () => getLaws(token ?? "")
     })
 
     const enrollFaceMutation = useMutation({
@@ -557,134 +611,10 @@ const VisitorRegistration = () => {
         onError: () => message.error("Failed to Enroll Right Thumb Finger")
     })
 
-    // const addVisitorMutation = useMutation({
-    //     mutationKey: ['add-visitor'],
-    //     mutationFn: (id: number) => patchVisitor({ ...visitorForm, person_id: id }, token ?? ""),
-    //     onSuccess: () => message.success('Successfully registered visitor'),
-    //     onError: (err) => message.error(err.message)
-    // })
-
-    // const addPersonMutation = useMutation({
-    //     mutationKey: ['add-person-visitor'],
-    //     mutationFn: () => addPerson(personForm, token ?? ""),
-    //     onSuccess: (data) => {
-    //         addVisitorMutation.mutate(data?.id)
-    //         enrollFaceMutation.mutate(data?.id)
-    //         enrollLeftMutation.mutate(data?.id)
-    //         enrollRightMutation.mutate(data?.id)
-    //         enrollLeftLittleMutation.mutate(data?.id)
-    //         enrollLeftRingMutation.mutate(data?.id)
-    //         enrollLeftMiddleMutation.mutate(data?.id)
-    //         enrollLeftIndexMutation.mutate(data?.id)
-    //         enrollRightLittleMutation.mutate(data?.id)
-    //         enrollRightRingMutation.mutate(data?.id)
-    //         enrollRightMiddleMutation.mutate(data?.id)
-    //         enrollRightIndexMutation.mutate(data?.id)
-    //         enrollLeftThumbMutation.mutate(data?.id)
-    //         enrollRightThumbMutation.mutate(data?.id)
-    //         message?.success("Successfully Registered Person")
-    //     }
-    // })
-
-
-    // const addPersonMutation = useMutation({
-    //     mutationKey: ['add-person-visitor'],
-    //     mutationFn: async () => {
-    //         if (!personForm.first_name ||
-    //             !personForm.last_name ||
-    //             !visitorForm.visitor_type_id ||
-    //             !personForm.gender_id ||
-    //             !personForm.date_of_birth ||
-    //             !personForm.place_of_birth ||
-    //             !personForm.civil_status_id
-    //         ) {
-    //             throw new Error("Please fill out all required fields");
-    //         }
-
-    //         return await addPerson(personForm, token ?? "");
-    //     },
-    //     onSuccess: async (data) => {
-    //         const id = data?.id;
-
-    //         try {
-    //             // First, run visitor mutation
-    //             const visitorRes = await addVisitorMutation.mutateAsync(id);
-
-    //             // Get visitor QR from returned ID
-    //             const qrRes = await fetch(`${BASE_URL}/api/visitors/visitor/${visitorRes.id}/`, {
-    //                 headers: {
-    //                     Authorization: `Token ${token}`,
-    //                 },
-    //             });
-
-    //             if (!qrRes.ok) {
-    //                 throw new Error("Failed to fetch QR code");
-    //             }
-
-    //             const qrData = await qrRes.json();
-    //             const base64Image = qrData?.encrypted_id_number_qr;
-
-    //             // Create a download link
-    //             if (base64Image) {
-    //                 downloadBase64Image(base64Image, `visitor-${visitorRes.id}-qr.png`);
-    //             }
-
-    //             // Run biometric mutations
-    //             await Promise.all([
-    //                 ...(enrollFormFace?.upload_data ? [enrollFaceMutation.mutateAsync(id)] : []),
-    //                 ...(enrollFormLeftIris?.upload_data ? [enrollLeftMutation.mutateAsync(id)] : []),
-    //                 ...(enrollFormRightIris?.upload_data ? [enrollRightMutation.mutateAsync(id)] : []),
-    //                 ...(enrollLeftLittleFinger?.upload_data ? [enrollLeftLittleMutation.mutateAsync(id)] : []),
-    //                 ...(enrollLeftRingFinger?.upload_data ? [enrollLeftRingMutation.mutateAsync(id)] : []),
-    //                 ...(enrollLeftMiddleFinger?.upload_data ? [enrollLeftMiddleMutation.mutateAsync(id)] : []),
-    //                 ...(enrollLeftIndexFinger?.upload_data ? [enrollLeftIndexMutation.mutateAsync(id)] : []),
-    //                 ...(enrollLeftThumbFinger?.upload_data ? [enrollLeftThumbMutation.mutateAsync(id)] : []),
-    //                 ...(enrollRightLittleFinger?.upload_data ? [enrollRightLittleMutation.mutateAsync(id)] : []),
-    //                 ...(enrollRightRingFinger?.upload_data ? [enrollRightRingMutation.mutateAsync(id)] : []),
-    //                 ...(enrollRightMiddleFinger?.upload_data ? [enrollRightMiddleMutation.mutateAsync(id)] : []),
-    //                 ...(enrollRightIndexFinger?.upload_data ? [enrollRightIndexMutation.mutateAsync(id)] : []),
-    //                 ...(enrollRightThumbFinger?.upload_data ? [enrollRightThumbMutation.mutateAsync(id)] : []),
-    //             ]);
-
-    //             message?.success("Successfully Registered Person");
-    //         } catch (err) {
-    //             console.error("Enrollment error:", err);
-    //             message?.error("Some enrollment steps failed");
-    //         }
-    //     },
-    //     onError: (err) => {
-    //         message?.error(err.message || "Something went wrong!");
-    //     },
-    // });
-
-    const visitorTypes = dropdownOptions?.[0]?.data
-    const genders = dropdownOptions?.[1]?.data
-    const nationalities = dropdownOptions?.[2]?.data
-    const civilStatuses = dropdownOptions?.[3]?.data
-    const affiliations = dropdownOptions?.[4]?.data
-    const regions = dropdownOptions?.[5]?.data
-    const provinces = dropdownOptions?.[6]?.data
-    const municipalities = dropdownOptions?.[7]?.data
-    const barangays = dropdownOptions?.[8]?.data
-    const countries = dropdownOptions?.[9]?.data
-    const persons = dropdownOptions?.[10]?.data
-    const personsLoading = dropdownOptions?.[10]?.isLoading
-    const users = dropdownOptions?.[11]?.data
-    const userLoading = dropdownOptions?.[11]?.isLoading
-    const visitorAppStatus = dropdownOptions?.[12]?.data
-    const visitorAppStatusLoading = dropdownOptions?.[12]?.isLoading
-    const currentUser = dropdownOptions?.[13]?.data
-    const prefixes = dropdownOptions?.[14]?.data
-    const prefixesLoading = dropdownOptions?.[14]?.isLoading
-    const suffixes = dropdownOptions?.[15]?.data
-    const suffixesLoading = dropdownOptions?.[15]?.isLoading
-    const birthClassTypes = dropdownOptions?.[16]?.data
-    const birthClassTypesLoading = dropdownOptions?.[16]?.isLoading
-
-    const { data: visitorData, error, isLoading } = useQuery({
-        queryKey: ['visitor', visitor?.id],
+    const { data: pdlData, error, isLoading } = useQuery({
+        queryKey: ['specific-pdl', pdl?.id],
         queryFn: async () => {
-            const response = await fetch(`${BASE_URL}/api/visitors/visitor/${visitor.id}`, {
+            const response = await fetch(`${BASE_URL}/api/pdls/pdl/${pdl.id}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -698,19 +628,19 @@ const VisitorRegistration = () => {
 
             return response.json();
         },
-        enabled: !!visitor?.id && !!token,
+        enabled: !!pdl?.id && !!token,
     });
 
-    const patchVisitorMutation = useMutation({
+    const patchPdlMutation = useMutation({
         mutationKey: ['patch-visitor'],
-        mutationFn: () => patchVisitor(visitorForm, token ?? "", visitorData?.id),
-        onSuccess: () => message.success('Successfully registered Visitor'),
+        mutationFn: () => patchPdl(pdlForm, token ?? "", pdlData?.id),
+        onSuccess: () => message.success('Successfully registered PDL'),
         onError: (err) => message.error(err.message)
     })
 
     const patchPersonMutation = useMutation({
         mutationKey: ['patch-person-visitor'],
-        mutationFn: () => patchPerson(personForm, token ?? "", visitorData?.person?.id),
+        mutationFn: () => patchPerson(personForm, token ?? "", pdlData?.person?.id),
         onSuccess: async () => {
             message?.success("Successfully Updated Person");
         },
@@ -720,43 +650,36 @@ const VisitorRegistration = () => {
     });
 
     const handleUpdate = async () => {
-        if (!visitorData?.person?.id) {
+        if (!pdlData?.person?.id) {
             message.error("Person ID is not available.");
             return;
         }
-    
+        patchPdlMutation.mutate()
+        patchPersonMutation.mutate()
+
         try {
-            // Wait for patch operations first
             await Promise.all([
-                patchVisitorMutation.mutateAsync(),
-                patchPersonMutation.mutateAsync(),
+                ...(enrollFormFace?.upload_data ? [enrollFaceMutation.mutateAsync(pdlData?.person?.id)] : []),
+                ...(enrollFormLeftIris?.upload_data ? [enrollLeftMutation.mutateAsync(pdlData?.person?.id)] : []),
+                ...(enrollFormRightIris?.upload_data ? [enrollRightMutation.mutateAsync(pdlData?.person?.id)] : []),
+                ...(enrollLeftLittleFinger?.upload_data ? [enrollLeftLittleMutation.mutateAsync(pdlData?.person?.id)] : []),
+                ...(enrollLeftRingFinger?.upload_data ? [enrollLeftRingMutation.mutateAsync(pdlData?.person?.id)] : []),
+                ...(enrollLeftMiddleFinger?.upload_data ? [enrollLeftMiddleMutation.mutateAsync(pdlData?.person?.id)] : []),
+                ...(enrollLeftIndexFinger?.upload_data ? [enrollLeftIndexMutation.mutateAsync(pdlData?.person?.id)] : []),
+                ...(enrollLeftThumbFinger?.upload_data ? [enrollLeftThumbMutation.mutateAsync(pdlData?.person?.id)] : []),
+                ...(enrollRightLittleFinger?.upload_data ? [enrollRightLittleMutation.mutateAsync(pdlData?.person?.id)] : []),
+                ...(enrollRightRingFinger?.upload_data ? [enrollRightRingMutation.mutateAsync(pdlData?.person?.id)] : []),
+                ...(enrollRightMiddleFinger?.upload_data ? [enrollRightMiddleMutation.mutateAsync(pdlData?.person?.id)] : []),
+                ...(enrollRightIndexFinger?.upload_data ? [enrollRightIndexMutation.mutateAsync(pdlData?.person?.id)] : []),
+                ...(enrollRightThumbFinger?.upload_data ? [enrollRightThumbMutation.mutateAsync(pdlData?.person?.id)] : []),
             ]);
-    
-            // Then perform enrollment mutations
-            await Promise.all([
-                ...(enrollFormFace?.upload_data ? [enrollFaceMutation.mutateAsync(visitorData.person.id)] : []),
-                ...(enrollFormLeftIris?.upload_data ? [enrollLeftMutation.mutateAsync(visitorData.person.id)] : []),
-                ...(enrollFormRightIris?.upload_data ? [enrollRightMutation.mutateAsync(visitorData.person.id)] : []),
-                ...(enrollLeftLittleFinger?.upload_data ? [enrollLeftLittleMutation.mutateAsync(visitorData.person.id)] : []),
-                ...(enrollLeftRingFinger?.upload_data ? [enrollLeftRingMutation.mutateAsync(visitorData.person.id)] : []),
-                ...(enrollLeftMiddleFinger?.upload_data ? [enrollLeftMiddleMutation.mutateAsync(visitorData.person.id)] : []),
-                ...(enrollLeftIndexFinger?.upload_data ? [enrollLeftIndexMutation.mutateAsync(visitorData.person.id)] : []),
-                ...(enrollLeftThumbFinger?.upload_data ? [enrollLeftThumbMutation.mutateAsync(visitorData.person.id)] : []),
-                ...(enrollRightLittleFinger?.upload_data ? [enrollRightLittleMutation.mutateAsync(visitorData.person.id)] : []),
-                ...(enrollRightRingFinger?.upload_data ? [enrollRightRingMutation.mutateAsync(visitorData.person.id)] : []),
-                ...(enrollRightMiddleFinger?.upload_data ? [enrollRightMiddleMutation.mutateAsync(visitorData.person.id)] : []),
-                ...(enrollRightIndexFinger?.upload_data ? [enrollRightIndexMutation.mutateAsync(visitorData.person.id)] : []),
-                ...(enrollRightThumbFinger?.upload_data ? [enrollRightThumbMutation.mutateAsync(visitorData.person.id)] : []),
-            ]);
-    
-            message.success("Visitor updated and biometric data enrolled.");
-    
+
         } catch (err) {
             console.error("Enrollment error:", err);
             message?.error("Some enrollment steps failed");
         }
-    };
-    
+    }
+
     const addressDataSource = personForm?.address_data?.map((address, index) => {
         return ({
             key: index,
@@ -885,7 +808,6 @@ const VisitorRegistration = () => {
             )
         })
     })
-
     const contactColumn: ColumnsType<{
         key: number;
         contact_type: string | null;
@@ -934,178 +856,596 @@ const VisitorRegistration = () => {
             },
         ];
 
-        const remarksDataSource = visitorForm?.remarks_data?.map((remarks, index) => {
-            return ({
-                key: index,
-                createdAt: remarks?.created_at,
-                createdBy: remarks?.created_by ?? null,
-                remarks: remarks?.remarks,
-                actions: (
-                    <div className="flex gap-1.5 font-semibold transition-all ease-in-out duration-200 justify-center items-center">
-                        <button
-                            type="button"
-                            onClick={() => handleDeleteRemarks(index)}
-                            className="border border-red-500 text-red-500 hover:bg-red-500 hover:text-white py-1 rounded flex w-10 h-10 items-center justify-center"
-                        >
-                            <AiOutlineDelete />
-                        </button>
-                    </div>
-                )
-            })
-        })
 
-        const remarksColumn: ColumnsType<{
-            remarks: string | null;
-            createdBy: string | null;
-            createdAt: string | null; 
-            actions: JSX.Element;
-        }> = [
-            {
-                title: 'Time Stamp',
-                dataIndex: 'createdAt',
-                render: (createdAt) => createdAt ? moment(createdAt).format('YYYY-MM-DD HH:mm:ss') : '', 
-            },
-            {
-                title: 'Created by',
-                dataIndex: 'createdBy', 
-                render: (createdBy) => createdBy || '', 
-            },
-            {
-                title: 'Notes/ Remarks',
-                align: 'center',
-                width: '50%',
-                key: 'remarks',
-                dataIndex: 'remarks',
-            },
-            {
-                title: "Actions",
-                key: "actions",
-                dataIndex: "actions",
-                align: 'center',
-            },
-        ];
-        useEffect(() => {
-            setPersonForm({
-                first_name: visitorData?.person?.first_name ?? "",
-                middle_name: visitorData?.person.middle_name ?? "",
-                last_name: visitorData?.person.last_name ?? "",
-                suffix: visitorData?.person.suffix ?? null,
-                prefix: visitorData?.person.prefix ?? null,
-                shortname: visitorData?.person.shortname ?? "",
-                gender_id: visitorData?.person.gender?.id ?? null,
-                date_of_birth: visitorData?.person.date_of_birth ?? "",
-                place_of_birth: visitorData?.person.place_of_birth ?? "",
-                nationality_id: nationalities?.find(nationality => nationality?.nationality === visitorData?.person?.nationality)?.id ?? null,
-                civil_status_id: civilStatuses?.find(civilStatus => civilStatus?.status === visitorData?.person?.civil_status)?.id ?? null,
-                address_data: visitorData?.person.addresses?.map((existingAddress: { region: string; province: string; municipality: string; barangay: string; country: string; postal_code: string; is_current: boolean; }) => ({
-                    ...existingAddress,
-                    region_id: regions?.find(region => region?.desc === existingAddress?.region)?.id ?? null,
-                    province_id: provinces?.find(province => province?.desc === existingAddress?.province)?.id ?? null,
-                    municipality_id: municipalities?.find(municipality => municipality?.desc === existingAddress?.municipality)?.id ?? null,
-                    barangay_id: barangays?.find(brgy => brgy?.desc === existingAddress?.barangay)?.id ?? null,
-                    country_id: countries?.find(country => country?.country === existingAddress?.country)?.id ?? null,
-                    postal_code: existingAddress?.postal_code ?? null,
-                    is_current: existingAddress?.is_current ?? false,
-                })) ?? [],
-                contact_data: visitorData?.person.contacts ?? [],
-                employment_history_data: visitorData?.person.employment_histories ?? [],
-                social_media_account_data: visitorData?.person.social_media_accounts ?? [],
-                skill_id: visitorData?.person.skill ?? [],
-                talent_id: visitorData?.person.talent ?? [],
-                interest_id: visitorData?.person.interest ?? [],
-                media_identifier_data: visitorData?.person.media_identifiers ?? [],
-                media_requirement_data: visitorData?.person.media_requirements ?? [],
-                diagnosis_data: visitorData?.person.diagnoses ?? [],
-                religion_id: visitorData?.person.religion?.id ?? 1,
-                multiple_birth_sibling_data: visitorData?.person?.multiple_birth_siblings ?? [],
-                ethnicity_province: visitorData?.person?.ethnicity_province
-            });
-        
-            setVisitorForm(prev => ({
-                ...prev,
-                visitor_type_id: visitor?.visitor_type_id ?? prev.visitor_type_id ?? 1,
-                person_id: visitor?.person_id && visitor.person_id !== 0 ? visitor.person_id : prev.person_id ?? currentUser?.id ?? null,
-                org_id: visitor?.org_id ?? prev.org_id,
-                jail_id: visitor?.jail_id ?? prev.jail_id,
-                shortname: visitor?.shortname ?? "",
-                visitor_have_twins: visitor?.visitor_have_twins ?? false,
-                visitor_twin_name: visitor?.visitor_twin_name ?? "",
-                visited_pdl_have_twins: visitor?.visited_pdl_have_twins ?? false,
-                visited_pdl_twin_name: visitor?.visited_pdl_twin_name ?? "",
-                remarks_data: visitor?.remarks ?? [],
-                visitor_app_status_id: visitor?.visitor_app_status_id ?? prev.visitor_app_status_id ?? 1, 
-                record_status_id: visitor?.record_status_id ?? prev.record_status_id ?? 1, 
-                verified_by_id: visitor?.verified_by_id ?? currentUser?.id ?? null,
-                approved_by_id: visitor?.approved_by_id ?? prev.approved_by_id ?? currentUser?.id ?? null, 
-                pdl_data: visitor?.pdl_data ?? [],
-                id_number: visitor?.id_number ?? null,
-                verified_at: visitor?.verified_at ?? null,
-                verified_at: visitor?.verified_at ?? null,
-                approved_at: visitor?.approved_at
-                ? new Date(visitor.approved_at).toISOString() 
-                : null,
-                }));
-        }, [visitorData]);
+
+    useEffect(() => {
+        setPersonForm({
+            first_name: pdlData?.person?.first_name ?? "",
+            middle_name: pdlData?.person.middle_name ?? "",
+            last_name: pdlData?.person.last_name ?? "",
+            suffix: pdlData?.person.suffix ?? null,
+            prefix: pdlData?.person.prefix ?? null,
+            shortname: pdlData?.person.shortname ?? "",
+            gender_id: pdlData?.person.gender?.id ?? null,
+            date_of_birth: pdlData?.person.date_of_birth ?? "",
+            place_of_birth: pdlData?.person.place_of_birth ?? "",
+            nationality_id: nationalities?.find(nationality => nationality?.nationality === pdlData?.person?.nationality)?.id ?? null,
+            civil_status_id: civilStatuses?.find(civilStatus => civilStatus?.status === pdlData?.person?.civil_status)?.id ?? null,
+            address_data: pdlData?.person.addresses?.map((existingAddress: { region: string; province: string; municipality: string; barangay: string; country: string; postal_code: string; is_current: boolean; }) => ({
+                ...existingAddress,
+                region_id: regions?.find(region => region?.desc === existingAddress?.region)?.id ?? null,
+                province_id: provinces?.find(province => province?.desc === existingAddress?.province)?.id ?? null,
+                municipality_id: municipalities?.find(municipality => municipality?.desc === existingAddress?.municipality)?.id ?? null,
+                barangay_id: barangays?.find(brgy => brgy?.desc === existingAddress?.barangay)?.id ?? null,
+                country_id: countries?.find(country => country?.country === existingAddress?.country)?.id ?? null,
+                postal_code: existingAddress?.postal_code ?? null,
+                is_current: existingAddress?.is_current ?? false,
+            })) ?? [],
+            contact_data: pdlData?.person.contacts ?? [],
+            employment_history_data: pdlData?.person.employment_histories ?? [],
+            education_background_data: pdlData?.person.education_backgrounds?.map((educ_bg: { educational_attainment: string; }) => ({
+                ...educ_bg,
+                educational_attainment_id: attainments?.find(attainment => attainment?.name === educ_bg?.educational_attainment)?.id ?? null,
+            })) ?? [],
+            social_media_account_data: pdlData?.person.social_media_accounts ?? [],
+            skill_id: pdlData?.person.skill ?? [],
+            talent_id: pdlData?.person.talent ?? [],
+            interest_id: pdlData?.person.interest ?? [],
+            media_identifier_data: pdlData?.person.media_identifiers ?? [],
+            media_requirement_data: pdlData?.person.media_requirements ?? [],
+            diagnosis_data: pdlData?.person.diagnoses ?? [],
+            religion_id: pdlData?.person.religion?.id ?? 1,
+            media_data: [],
+            multiple_birth_sibling_data: pdlData?.person?.multiple_birth_siblings ?? [],
+            ethnicity_province: pdlData?.person?.ethnicity_province
+        });
+
+        setPdlForm({
+            date_of_admission: pdlData?.date_of_admission ?? "2001-01-01",
+            // case_data: pdlData?.cases?.map((pdlCases: { case_number: string; offense: { id: number; crime_category: string; }; name: string; bail_recommended: number; law: string; }) => ({
+            //     ...pdlCases,
+            //     case_number: pdlCases?.case_number ?? "",
+            //     offense_id: pdlCases?.offense?.id ?? null,
+            //     crime_category_id: crimeCategories?.find(categories => categories?.crime_category_name === pdlCases?.offense?.crime_category)?.id ?? null,
+            //     court_name: pdlCases?.name,
+            //     bail_recommended: pdlCases?.bail_recommended ?? "",
+            //     law_id: laws?.find(law => law?.name === pdlCases?.law)?.id ?? null,
+            // })) ?? [],
+            case_data: [],
+            gang_affiliation_id: gangAffiliation?.find(affiliation => affiliation?.name === pdlData?.gang_affiliation)?.id ?? 1,
+            jail_id: pdlData?.jail?.id ?? null,
+            org_id: 1,
+            occupation_id: occupations?.find(occupation => occupation?.name === pdlData?.occupation)?.id ?? null,
+            status: pdlData?.status ?? "",
+            visitor_ids: [],
+            pdl_alias: pdlData?.shortname ?? "",
+            time_arrested: "",
+            remarks_data: [],
+            look_id: looks?.find(look => look?.name === pdlData?.look)?.id ?? 5,
+            // person_relationship_data: pdlData?.person_relationships?.map(person_relationship => ({
+            //     ...person_relationship,
+            //     relationship_id: relationships?.find(relation => relation?.relationship_name === person_relationship?.relationship)?.id ?? null,
+
+            // })) ?? [],
+            person_id: pdlData?.person?.id ?? null,
+            visitor: pdlData?.visitor ?? [],
+            precinct_id: precincts?.find(precinct => precinct?.precinct_name === pdlData?.precinct?.match(/.*?\)/)?.[0])?.id ?? 1,
+            building_id: levels?.find(lvl => lvl?.bldg_name === pdlData?.cell?.floor?.match(/\(([^)]+)\)/)[1])?.id ?? null,
+            cell_id: pdlData?.cell?.id ?? null,
+            floor_id: annex?.find(annex => annex?.floor_name === pdlData?.cell?.floor?.split(" ")[0])?.id ?? null,
+            visitation_status_id: pdlVisitStatuses?.find(status => status?.name === pdlData?.visitation_status)?.id ?? 1,
+        });
+    }, []);
 
     useEffect(() => {
         const short = `${personForm?.first_name?.[0] ?? ""}${personForm?.last_name?.[0] ?? ""}`;
         setPersonForm((prev) => ({ ...prev, shortname: short.toUpperCase() }));
     }, [personForm.first_name, personForm.last_name]);
 
-    if (isLoading) return (
-        <div className="flex justify-center items-center h-[60vh]">
-            <Spin size="large" tip="Loading visitor data..." />
-        </div>
-    );
+    if (isLoading) return <div>Loading...</div>;
+    if (error) return <div>Error fetching PDL data</div>;
 
-    
+
+    console.log("Person: ", personForm)
+    console.log("PDL: ", pdlForm)
+
     return (
         <div className='bg-white rounded-md shadow border border-gray-200 py-5 px-7 w-full mb-5'>
-            <div className="mb-4 flex gap-3 items-center">
-                <button
-                    type="button"
-                    onClick={() => navigate(-1)}
-                    className="px-3 py-2 bg-gray-300 hover:bg-gray-400 text-black rounded"
-                >
-                    <RxDoubleArrowLeft />
-                </button>
-                <h2 className='font-extrabold text-2xl'>Visitor Registration</h2>
-            </div>
+            <h2 className='font-extrabold text-2xl'>PDL Registration</h2>
             <form>
                 <div className='mt-5 text-gray-700'>
-                    <h3 className='font-bold text-xl'>Visitor Information</h3>
+                    <h3 className='font-bold text-xl'>PDL Information</h3>
                     <div className="flex flex-col w-full gap-2">
-                        <div className="flex gap-2 w-[50%]">
-                            <div className='flex flex-col mt-2 w-full'>
-                                <div className='flex gap-1'>Visitor No. <p className='text-red-600'>*</p></div>
+                        <div className="flex justify-end">
+                            <div className="flex gap-2 w-[30%] items-end">
+                                <div className='flex flex-col mt-2 w-full'>
+                                    <div className='flex gap-1 font-semibold'>Level</div>
+                                    <Select
+                                        value={pdlForm?.building_id}
+                                        showSearch
+                                        optionFilterProp="label"
+                                        loading={levelsLoading}
+                                        className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                        options={levels?.map(level => ({
+                                            value: level?.id,
+                                            label: level?.bldg_name
+                                        }))}
+                                        onChange={value => {
+                                            setPdlForm(prev => ({
+                                                ...prev,
+                                                building_id: value
+                                            }))
+                                        }}
+                                    />
+                                </div>
+                                {/*Select Input Field */}
+                                <div className='flex flex-col mt-2 w-full'>
+                                    <div className='flex gap-1 font-semibold'>Annex</div>
+                                    <Select
+                                        value={pdlForm?.floor_id}
+                                        showSearch
+                                        loading={annexLoading}
+                                        optionFilterProp="label"
+                                        className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                        options={annex?.map(annex => ({
+                                            value: annex?.id,
+                                            label: annex?.floor_name
+                                        }))}
+                                        onChange={value => {
+                                            setPdlForm(prev => ({
+                                                ...prev,
+                                                floor_id: value
+                                            }))
+                                        }}
+                                    />
+                                </div>
+                                <div className='flex flex-col mt-2 w-full'>
+                                    <div className='flex gap-1 font-semibold'>Dorm</div>
+                                    <Select
+                                        value={pdlForm?.cell_id}
+                                        showSearch
+                                        optionFilterProp="label"
+                                        className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                        options={dorms?.map(dorm => ({
+                                            value: dorm?.id,
+                                            label: dorm?.cell_name
+                                        }))}
+                                        onChange={value => {
+                                            setPdlForm(prev => ({
+                                                ...prev,
+                                                cell_id: value
+                                            }))
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row gap-2">
+                            <div className='flex flex-col mt-2 flex-1'>
+                                <div className='flex gap-1 font-semibold'>PDL No.<span className='text-red-600'>*</span></div>
                                 <Input
-                                    className='mt-2 px-3 py-2 rounded-md'
-                                    type="number"
-                                    name="visitor_reg_no"
-                                    placeholder="YYYY-MM-DD-XXXXXXX"
                                     readOnly
-                                // onChange={(e) => setVisitorForm(prev => ({ ...prev, visitor_reg_no: Number(e.target.value) }))}
+                                    placeholder="YYYY-MM-DD-XXXXXXX"
+                                    className='mt-2 h-10 rounded-md outline-gray-300'
                                 />
                             </div>
-                            {/*Select Input Field */}
-                            <div className='flex flex-col mt-2 w-full'>
-                            <div className='flex gap-1'>Visitor Type</div>
-                                <Select
-                                value={visitorForm?.visitor_type_id ?? null}
-                                className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
-                                options={visitorTypes?.map((type) => ({
-                                    value: type.id,
-                                    label: type.visitor_type,
-                                }))}
-                                onChange={value =>
-                                    setVisitorForm(prev => ({ ...prev, visitor_type_id: value }))
-                                }
+                            <div className='flex flex-col mt-2 flex-1'>
+                                <div className='flex gap-1 font-semibold'>File No.<p className='text-red-600'>*</p></div>
+                                <Input
+                                    readOnly
+                                    placeholder="YYYY-MM-DD-XXXXXXX"
+                                    className='mt-2 h-10 rounded-md outline-gray-300'
                                 />
                             </div>
-                            <div className='flex flex-col mt-2 w-full'>
-                                <div className='flex gap-1'>Nationality<p className='text-red-600'>*</p></div>
+                            <div className='flex flex-col mt-2 flex-1'>
+                                <div className='flex gap-1 font-semibold'>Date Arrested</div>
+                                <Input
+                                    value={pdlForm?.date_of_admission ?? "2001-01-01"}
+                                    className='mt-2 px-3 py-2 rounded-md outline-gray-300'
+                                    type="date"
+                                    name="fname"
+                                    placeholder=""
+                                    required
+                                    onChange={(e) => setPdlForm(prev => ({ ...prev, date_of_admission: e.target.value }))}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-1'>
+                                <div className='flex gap-1 font-semibold'>Jail Origin</div>
                                 <Select
-                                value={personForm?.nationality_id}
+                                    value={pdlForm?.precinct_id}
+                                    loading={precinctsLoading}
+                                    showSearch
+                                    optionFilterProp="label"
+                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                    options={precincts?.map(precinct => ({
+                                        value: precinct?.id,
+                                        label: precinct?.precinct_name
+                                    }))}
+                                    onChange={(value) => {
+                                        setPdlForm(prev => (
+                                            {
+                                                ...prev,
+                                                precinct_id: value
+                                            }
+                                        ))
+                                    }}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-1'>
+                                <div className='flex gap-1 font-semibold'>Gang Affiliation</div>
+                                <Select
+                                    value={pdlForm?.gang_affiliation_id}
+                                    loading={gangAffiliationLoading}
+                                    showSearch
+                                    optionFilterProp="label"
+                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                    options={gangAffiliation?.map(gang => ({
+                                        value: gang?.id,
+                                        label: gang?.name
+                                    }))}
+                                    onChange={(value) => {
+                                        setPdlForm(prev => (
+                                            {
+                                                ...prev,
+                                                gang_affiliation_id: value
+                                            }
+                                        ))
+                                    }}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-1'>
+                                <div className='flex gap-1 font-semibold'>Visitation Status</div>
+                                <Select
+                                    value={pdlForm?.visitation_status_id}
+                                    loading={pdlVisitStatusesLoading}
+                                    showSearch
+                                    optionFilterProp="label"
+                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                    options={pdlVisitStatuses?.map(status => ({
+                                        value: status?.id,
+                                        label: status?.name
+                                    }))}
+                                    onChange={(value) => {
+                                        setPdlForm(prev => (
+                                            {
+                                                ...prev,
+                                                visitation_status_id: value
+                                            }
+                                        ))
+                                    }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row gap-2">
+                            <div className='flex flex-col mt-2 flex-1'>
+                                <div className='flex gap-1 font-semibold'>Prefix</div>
+                                <Select
+                                    value={personForm?.prefix}
+                                    loading={prefixesLoading}
+                                    showSearch
+                                    optionFilterProp="label"
+                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                    options={prefixes?.map(prefix => ({
+                                        value: prefix?.id,
+                                        label: prefix?.prefix
+                                    }))}
+                                    onChange={(value) => {
+                                        setPersonForm(prev => (
+                                            {
+                                                ...prev,
+                                                prefix: value
+                                            }
+                                        ))
+                                    }}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-[3]'>
+                                <div className='flex gap-1 font-semibold'>Last Name<p className='text-red-600'>*</p></div>
+                                <Input
+                                    value={personForm.last_name ?? ""}
+                                    className='mt-2 px-3 py-2 rounded-md'
+                                    type="text" name="lname"
+                                    placeholder="Last Name"
+                                    required
+                                    onChange={(e) => setPersonForm(prev => ({ ...prev, last_name: e.target.value }))}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-[3]'>
+                                <div className='flex gap-1 font-semibold'>First Name<p className='text-red-600'>*</p></div>
+                                <Input
+                                    value={personForm.first_name ?? ""}
+                                    className='mt-2 px-3 py-2 rounded-md outline-gray-300'
+                                    type="text"
+                                    name="fname"
+                                    placeholder="First Name"
+                                    required
+                                    onChange={(e) => setPersonForm(prev => ({ ...prev, first_name: e.target.value }))}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-[3]'>
+                                <div className='flex gap-1 font-semibold'>Middle Name</div>
+                                <Input
+                                    value={personForm.middle_name ?? ""}
+                                    className='mt-2 px-3 py-2 rounded-md outline-gray-300'
+                                    type="text"
+                                    name="middle-name"
+                                    placeholder="Middle Name"
+                                    required
+                                    onChange={(e) => setPersonForm(prev => ({ ...prev, middle_name: e.target.value }))}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-1'>
+                                <div className='flex gap-1 font-semibold'>Suffix</div>
+                                <Select
+                                    value={personForm?.suffix}
+                                    loading={suffixesLoading}
+                                    showSearch
+                                    optionFilterProp="label"
+                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                    options={suffixes?.map(suffix => ({
+                                        value: suffix?.id,
+                                        label: suffix?.suffix
+                                    }))}
+                                    onChange={(value) => {
+                                        setPersonForm(prev => (
+                                            {
+                                                ...prev,
+                                                suffix: value
+                                            }
+                                        ))
+                                    }}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-[3]'>
+                                <div className='flex gap-1 font-semibold'>Gender<p className='text-red-600'>*</p></div>
+                                <Select
+                                    value={personForm?.gender_id}
+                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                    options={genders?.map(gender => ({
+                                        value: gender?.id,
+                                        label: gender?.gender_option
+                                    }))}
+                                    onChange={(value) => {
+                                        setPersonForm(prev => (
+                                            {
+                                                ...prev,
+                                                gender_id: value
+                                            }
+                                        ))
+                                    }}
+                                />
+                            </div>
+                        </div>
+                        <div className="flex flex-col md:flex-row gap-2">
+                            <div className='flex flex-col mt-2 flex-[3]'>
+                                <div className='flex gap-1 font-semibold'>Short Name</div>
+                                <Input
+                                    className='mt-2 px-3 py-2 rounded-md outline-gray-300'
+                                    type="text"
+                                    name="short-name"
+                                    placeholder="Short Name"
+                                    required
+                                    value={personForm.shortname ?? ""}
+                                    readOnly
+                                />
+
+                            </div>
+                            <div className='flex flex-col mt-2 flex-[2]'>
+                                <div className='flex gap-1 font-semibold'>Date of Birth<p className='text-red-600'>*</p></div>
+                                <DatePicker
+                                    value={personForm.date_of_birth ? dayjs(personForm.date_of_birth) : null}
+                                    placeholder="YYYY-MM-DD"
+                                    className="mt-2 h-10 rounded-md outline-gray-300"
+                                    onChange={(date) =>
+                                        setPersonForm((prev) => ({
+                                            ...prev,
+                                            date_of_birth: date ? date.format("YYYY-MM-DD") : "",
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-1'>
+                                <div className='flex gap-1 font-semibold'>Age<p className='text-red-600'>*</p></div>
+                                <Input
+                                    className='mt-2 px-3 py-2 rounded-md outline-gray-300 bg-gray-100'
+                                    type="text" name="middle-name"
+                                    placeholder="Age"
+                                    disabled
+                                    value={calculateAge(personForm?.date_of_birth)}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-[3]'>
+                                <div className='flex gap-1 font-semibold'>Place of Birth<p className='text-red-600'>*</p></div>
+                                <Input
+                                    value={personForm.place_of_birth ?? ""}
+                                    className='mt-2 px-3 py-2 rounded-md outline-gray-300'
+                                    type="text" name="birth-date"
+                                    placeholder="Date of Birth"
+                                    required
+                                    onChange={(e) => setPersonForm(prev => ({ ...prev, place_of_birth: e.target.value }))}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-[1.5]'>
+                                <div className='flex gap-1 font-semibold'>Civil Status<p className='text-red-600'>*</p></div>
+                                <Select
+                                    value={personForm?.civil_status_id}
+                                    showSearch
+                                    optionFilterProp="label"
+                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                    options={civilStatuses?.map(civilStatus => ({
+                                        value: civilStatus?.id,
+                                        label: civilStatus?.status
+                                    }))}
+                                    onChange={(value) => {
+                                        setPersonForm(prev => (
+                                            {
+                                                ...prev,
+                                                civil_status_id: value
+                                            }
+                                        ))
+                                    }}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-[2]'>
+                                <div className='flex gap-1 font-semibold'>Religion</div>
+                                <Select
+                                    value={personForm?.religion_id}
+                                    loading={religionsLoading}
+                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                    options={religions?.map(religion => ({
+                                        value: religion?.id,
+                                        label: religion?.name
+                                    }))}
+                                    onChange={value => {
+                                        setPersonForm(prev => ({
+                                            ...prev,
+                                            religion_id: value
+                                        }))
+                                    }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row gap-2">
+                            <div className='flex flex-col mt-2 flex-1'>
+                                <div className='flex gap-1 font-semibold'>Occupation<span className='text-red-600'>*</span></div>
+                                <Select
+                                    value={pdlForm?.occupation_id}
+                                    loading={occupationsLoading}
+                                    showSearch
+                                    optionFilterProp="label"
+                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                    options={occupations?.map(occupation => ({
+                                        value: occupation?.id,
+                                        label: occupation?.name
+                                    }))}
+                                    onChange={(value) => {
+                                        setPdlForm(prev => (
+                                            {
+                                                ...prev,
+                                                occupation_id: value
+                                            }
+                                        ))
+                                    }}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-1'>
+                                <div className='flex gap-1 font-semibold'>Ethnicity<p className='text-red-600'>*</p></div>
+                                <Select
+                                    value={personForm?.ethnicity_province}
+                                    loading={ethnicitiesProvincesLoading}
+                                    showSearch
+                                    optionFilterProp="label"
+                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                    options={ethnicitiesProvinces?.map(ethnicity => ({
+                                        value: ethnicity?.id,
+                                        label: `${ethnicity?.ethnicity}`
+                                    }))}
+                                    onChange={(value) => {
+                                        setPersonForm(prev => (
+                                            {
+                                                ...prev,
+                                                ethnicity_province: value
+                                            }
+                                        ))
+                                    }}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-1'>
+                                <div className='flex gap-1 font-semibold'>Skill<p className='text-red-600'>*</p></div>
+                                <Select
+                                    value={personForm?.skill_id?.[0]}
+                                    loading={skillsLoading}
+                                    showSearch
+                                    optionFilterProp="label"
+                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                    options={skills?.map(skill => ({
+                                        value: skill?.id,
+                                        label: skill?.name
+                                    }))}
+                                    onChange={(value) => {
+                                        setPersonForm(prev => (
+                                            {
+                                                ...prev,
+                                                skill_id: value ? [value] : []
+                                            }
+                                        ))
+                                    }}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-1'>
+                                <div className='flex gap-1 font-semibold'>Talent<span className="text-red-600">*</span></div>
+                                <Select
+                                    value={personForm?.talent_id?.[0]}
+                                    loading={talentsLoading}
+                                    showSearch
+                                    optionFilterProp="label"
+                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                    options={talents?.map(talent => ({
+                                        value: talent?.id,
+                                        label: talent?.name
+                                    }))}
+                                    onChange={(value) => {
+                                        setPersonForm(prev => (
+                                            {
+                                                ...prev,
+                                                talent_id: value ? [value] : []
+                                            }
+                                        ))
+                                    }}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-1'>
+                                <div className='flex gap-1 font-semibold'>Interest<span className="text-red-600">*</span></div>
+                                <Select
+                                    value={personForm?.interest_id?.[0]}
+                                    loading={interestsLoading}
+                                    showSearch
+                                    optionFilterProp="label"
+                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                    options={interests?.map(interest => ({
+                                        value: interest?.id,
+                                        label: interest?.name
+                                    }))}
+                                    onChange={(value) => {
+                                        setPersonForm(prev => (
+                                            {
+                                                ...prev,
+                                                interest_id: value ? [value] : []
+                                            }
+                                        ))
+                                    }}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-1'>
+                                <div className='flex gap-1 font-semibold'>Looks<span className="text-red-600">*</span></div>
+                                <Select
+                                    value={pdlForm?.look_id}
+                                    loading={looksLoading}
+                                    showSearch
+                                    optionFilterProp="label"
+                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
+                                    options={looks?.map(look => ({
+                                        value: look?.id,
+                                        label: look?.name
+                                    }))}
+                                    onChange={(value) => {
+                                        setPdlForm(prev => (
+                                            {
+                                                ...prev,
+                                                look_id: value
+                                            }
+                                        ))
+                                    }}
+                                />
+                            </div>
+                            <div className='flex flex-col mt-2 flex-1'>
+                                <div className='flex gap-1 font-semibold'>Nationality <span className="text-red-600">*</span></div>
+                                <Select
+                                    value={personForm?.nationality_id}
+                                    loading={nationalitiesLoading}
                                     showSearch
                                     optionFilterProp="label"
                                     className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
@@ -1128,181 +1468,6 @@ const VisitorRegistration = () => {
                                         ))
                                     }}
                                 />
-                            </div>
-                        </div>
-                        <div className="flex flex-col md:flex-row gap-2">
-                            <div className='flex flex-col mt-2 flex-1'>
-                                <div className='flex gap-1'>Prefix</div>
-                                <Select
-                                    value={personForm?.prefix}
-                                    loading={prefixesLoading}
-                                    showSearch
-                                    optionFilterProp="label"
-                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
-                                    options={prefixes?.map(prefix => ({
-                                        value: prefix?.id,
-                                        label: prefix?.prefix
-                                    }))}
-                                    onChange={(value) => {
-                                        setPersonForm(prev => (
-                                            {
-                                                ...prev,
-                                                prefix: value
-                                            }
-                                        ))
-                                    }}
-                                />
-                            </div>
-                            <div className='flex flex-col mt-2 flex-[3]'>
-                                <div className='flex gap-1'>Last Name<p className='text-red-600'>*</p></div>
-                                <Input
-                                    value={personForm.last_name ?? ""}
-                                    className='mt-2 px-3 py-2 rounded-md'
-                                    type="text" name="lname"
-                                    placeholder="Last Name"
-                                    required
-                                    onChange={(e) => setPersonForm(prev => ({ ...prev, last_name: e.target.value }))}
-                                />
-                            </div>
-                            <div className='flex flex-col mt-2 flex-[3]'>
-                                <div className='flex gap-1'>First Name<p className='text-red-600'>*</p></div>
-                                <Input
-                                    value={personForm.first_name ?? ""}
-                                    className='mt-2 px-3 py-2 rounded-md outline-gray-300'
-                                    type="text"
-                                    name="fname"
-                                    placeholder="First Name"
-                                    required
-                                    onChange={(e) => setPersonForm(prev => ({ ...prev, first_name: e.target.value }))}
-                                />
-                            </div>
-                            <div className='flex flex-col mt-2 flex-[3]'>
-                                <div className='flex gap-1'>Middle Name</div>
-                                <Input
-                                    value={personForm.middle_name ?? ""}
-                                    className='mt-2 px-3 py-2 rounded-md outline-gray-300'
-                                    type="text"
-                                    name="middle-name"
-                                    placeholder="Middle Name"
-                                    required
-                                    onChange={(e) => setPersonForm(prev => ({ ...prev, middle_name: e.target.value }))}
-                                />
-                            </div>
-                            <div className='flex flex-col mt-2 flex-1'>
-                                <div className='flex gap-1'>Suffix</div>
-                                <Select
-                                    value={personForm?.suffix}
-                                    loading={suffixesLoading}
-                                    showSearch
-                                    optionFilterProp="label"
-                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
-                                    options={suffixes?.map(suffix => ({
-                                        value: suffix?.id,
-                                        label: suffix?.suffix
-                                    }))}
-                                    onChange={(value) => {
-                                        setPersonForm(prev => (
-                                            {
-                                                ...prev,
-                                                suffix: value
-                                            }
-                                        ))
-                                    }}
-                                />
-                            </div>
-                            <div className='flex flex-col mt-2 flex-[3]'>
-                                <div className='flex gap-1'>Gender<p className='text-red-600'>*</p></div>
-                                <Select
-                                    value={personForm?.gender_id}
-                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
-                                    options={genders?.map(gender => ({
-                                        value: gender?.id,
-                                        label: gender?.gender_option
-                                    }))}
-                                    onChange={(value) => {
-                                        setPersonForm(prev => (
-                                            {
-                                                ...prev,
-                                                gender_id: value
-                                            }
-                                        ))
-                                    }}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex flex-col md:flex-row gap-2">
-                            <div className='flex flex-col mt-2 flex-[4]'>
-                                <div className='flex gap-1'>Short Name</div>
-                                <Input
-                                    className='mt-2 px-3 py-2 rounded-md outline-gray-300'
-                                    type="text"
-                                    name="short-name"
-                                    placeholder="Short Name"
-                                    required
-                                    value={personForm.shortname ?? ""}
-                                    readOnly
-                                />
-
-                            </div>
-                            <div className='flex flex-col mt-2 flex-[2]'>
-                                <div className='flex gap-1'>Date of Birth<p className='text-red-600'>*</p></div>
-                                <DatePicker
-                                    value={personForm.date_of_birth ? dayjs(personForm.date_of_birth) : null}
-                                    placeholder="YYYY-MM-DD"
-                                    className="mt-2 h-10 rounded-md outline-gray-300"
-                                    onChange={(date) =>
-                                        setPersonForm((prev) => ({
-                                            ...prev,
-                                            date_of_birth: date ? date.format("YYYY-MM-DD") : "",
-                                        }))
-                                    }
-                                />
-                            </div>
-                            <div className='flex flex-col mt-2 flex-1'>
-                                <div className='flex gap-1 text-gray-400'>Age<p className='text-red-600'>*</p></div>
-                                <Input
-                                    className='mt-2 px-3 py-2 rounded-md outline-gray-300 bg-gray-100'
-                                    type="text" name="middle-name"
-                                    placeholder="Age"
-                                    disabled
-                                    value={calculateAge(personForm?.date_of_birth)}
-                                />
-                            </div>
-                            <div className='flex flex-col mt-2 flex-[3]'>
-                                <div className='flex gap-1'>Place of Birth<p className='text-red-600'>*</p></div>
-                                <Input
-                                    value={personForm?.place_of_birth}
-                                    className='mt-2 px-3 py-2 rounded-md outline-gray-300'
-                                    type="text" name="birth-date"
-                                    placeholder="Date of Birth"
-                                    required
-                                    onChange={(e) => setPersonForm(prev => ({ ...prev, place_of_birth: e.target.value }))}
-                                />
-                            </div>
-                            <div className='flex flex-col mt-2 flex-1'>
-                                <div className='flex gap-1'>Civil Status<p className='text-red-600'>*</p></div>
-                                <Select
-                                    value={personForm?.civil_status_id}
-                                    showSearch
-                                    optionFilterProp="label"
-                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
-                                    options={civilStatuses?.map(civilStatus => ({
-                                        value: civilStatus?.id,
-                                        label: civilStatus?.status
-                                    }))}
-                                    onChange={(value) => {
-                                        setPersonForm(prev => (
-                                            {
-                                                ...prev,
-                                                civil_status_id: value
-                                            }
-                                        ))
-                                    }}
-                                />
-                            </div>
-                            <div className='flex flex-col mt-2 flex-[2]'>
-                                <div className='flex gap-1'>Affiliation</div>
-                                <Input disabled className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'/>
                             </div>
                         </div>
 
@@ -1366,6 +1531,20 @@ const VisitorRegistration = () => {
                 </div>
             </form>
 
+            <EducAttainment
+                setPersonForm={setPersonForm}
+                personForm={personForm}
+            />
+
+            {/* <FMC
+                prefixes={prefixes || []}
+                suffixes={suffixes || []}
+                persons={persons || []}
+                personsLoading={personsLoading}
+                pdlForm={pdlForm}
+                setPdlForm={setPdlForm}
+            /> */}
+
             <Modal
                 className="overflow-y-auto rounded-lg scrollbar-hide"
                 title={editAddressIndex !== null ? "Edit Address" : "Add Address"}
@@ -1405,6 +1584,7 @@ const VisitorRegistration = () => {
                 />
             </Modal>
 
+            {/**Biometrics */}
             <VisitorProfile
                 icao={icao}
                 setIcao={setIcao}
@@ -1426,134 +1606,29 @@ const VisitorRegistration = () => {
                 setEnrollRightThumbFinger={setEnrollRightThumbFinger}
             />
 
-            {/**PDL To Visit, Requirements, Identifiers*/}
-            <PDLtovisit
-                visitorForm={visitorForm}
-                editPdlToVisitIndex={editPdlToVisitIndex}
-                setEditPdlToVisitIndex={setEditPdlToVisitIndex}
-                deleteMediaRequirementByIndex={deleteMediaRequirementByIndex}
-                deleteMediaIdentifierByIndex={deleteMediaIdentifierByIndex}
-                deletePdlToVisit={deletePdlToVisit}
-                setPersonForm={setPersonForm}
-                personForm={personForm}
-                setVisitorForm={setVisitorForm}
+            <CaseDetails
+                pdlForm={pdlForm}
+                setPdlForm={setPdlForm}
             />
+
+            <PdlVisitor
+                pdlForm={pdlForm}
+                setPdlForm={setPdlForm}
+            />
+
             <Issue />
+
             <Remarks
                 deleteRemarksByIndex={deleteRemarksByIndex}
                 currentUser={currentUser ?? null}
-                setVisitorForm={setVisitorForm}
+                setVisitorForm={setPdlForm}
             />
-            <div className="flex flex-col gap-5 mt-10">
-                <div className="flex justify-between">
-                    <h1 className='font-bold text-xl'>Remarks Data</h1>
-                </div>
-                <div>
-                    <Table
-                        className="border text-gray-200 rounded-md"
-                        dataSource={remarksDataSource}
-                        columns={remarksColumn}
-                        scroll={{ x: 800 }}
-                    />
-                </div>
-            </div>
 
             <form>
                 <div className="flex gap-2 mt-5">
                     <div className="flex flex-col gap-5 w-full">
-                        <div className="flex flex-col md:flex-row w-full gap-5">
-                            <div className='flex flex-col mt-2 w-full'>
-                                <div className='flex gap-1'>Visitor Registration Status<p className='text-red-600'>*</p>
-                                </div>
-                                <Select
-                                    value={visitorForm?.visitor_app_status_id}
-                                    loading={visitorAppStatusLoading}
-                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
-                                    options={visitorAppStatus?.map((status) => ({
-                                        value: status?.id,
-                                        label: status?.status,
-                                    }))}
-                                    onChange={value => {
-                                        setVisitorForm(prev => ({
-                                            ...prev,
-                                            visitor_app_status_id: value
-                                        }))
-                                    }}
-                                />
-                            </div>
 
-                            <div className='flex flex-col mt-2 w-full'>
-                                <div className='flex gap-1'>Verified By</div>
-                                <Input
-                                    className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
-                                    value={currentUser?.first_name + " " + currentUser?.last_name}
-                                    readOnly
-                                />
-                            </div>
-                            <div className='flex flex-col mt-2 w-full'>
-                                <div className='flex gap-1'>Date Verified</div>
-                                <input
-                                    type="date"
-                                    className="mt-2 px-3 py-2 rounded-md outline-gray-300 bg-gray-100"
-                                    value={
-                                        visitorForm?.verified_at ? visitorForm.verified_at.split('T')[0] : ''
-                                    }
-                                    onChange={e => {
-                                        const date = e.target.value;
-                                        setVisitorForm(prev => ({
-                                        ...prev,
-                                        verified_at: date ? `${date}T00:00:00` : null,
-                                        }));
-                                    }}
-                                    />
-                            </div>
-                            <div className='flex flex-col mt-2 w-full'>
-                            <div className='flex gap-1'>Approved By</div>
-                            <Select
-                                value={visitorForm?.approved_by_id ?? null}
-                                loading={userLoading}
-                                className='mt-2 h-10 rounded-md outline-gray-300 !bg-gray-100'
-                                options={users?.map((user) => ({
-                                value: user?.id,
-                                label: `${user?.first_name ?? ""} ${user?.last_name ?? ""}`,
-                                }))}
-                                onChange={value => {
-                                setVisitorForm(prev => ({
-                                    ...prev,
-                                    approved_by_id: value
-                                }));
-                                }}
-                            />
-                            </div>
-                            <div className='flex flex-col mt-2 w-full'>
-                                <div className='flex gap-1'>Date Approved</div>
-                                <input
-                                    type="date"
-                                    className="mt-2 px-3 py-2 rounded-md outline-gray-300 bg-gray-100"
-                                    value={
-                                        visitorForm?.approved_at ? visitorForm.approved_at.split('T')[0] : ''
-                                    }
-                                    onChange={e => {
-                                        const date = e.target.value;
-                                        setVisitorForm(prev => ({
-                                        ...prev,
-                                        approved_at: date ? `${date}T00:00:00` : null,
-                                        }));
-                                    }}
-                                    />
-                                </div>
-                        </div>
-
-                        <div className="flex items-center justify-between w-full gap-5">
-                            <div className='flex flex-col mt-2 w-[18.5%]'>
-                                <div className='flex gap-1'>ID No.</div>
-                                <input
-                                    value={visitorForm?.id_number}
-                                    type="text"
-                                    className="mt-2 px-3 py-2 rounded-md outline-gray-300 bg-gray-100"
-                                    onChange={e => setVisitorForm(prev => ({ ...prev, id_number: Number(e.target.value) }))}
-                                />
-                            </div>
+                        <div className="flex items-center justify-end w-full gap-5">
 
                             <div className="flex gap-4 w-[30%] h-full items-end">
                                 <button
@@ -1578,4 +1653,6 @@ const VisitorRegistration = () => {
     );
 };
 
-export default VisitorRegistration;
+export default UpdatePDL;
+
+

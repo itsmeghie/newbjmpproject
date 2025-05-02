@@ -27,7 +27,6 @@ import GeneralSetting from "./pages/Settings/generalsetting.tsx";
 import User from "./pages/User_Management/User.tsx";
 import Users from "./pages/User_Management/User/User.tsx";
 import Roles from "./pages/User_Management/Roles/Roles.tsx";
-import RoleLevel from "./pages/User_Management/RolesLevel/roleslevel.tsx";
 import Tools from "./pages/tools/Tools.tsx";
 import Integration from "./pages/Integration/Integration.tsx";
 import Support from "./pages/support/Support.tsx";
@@ -97,6 +96,10 @@ import VisitorProfileSlider from "./pages/LOG/visitor-profiles/VisitorProfileSli
 import Verify from "./pages/screening/verify/Verify.tsx";
 import OTP from "./pages/User_Management/OTP/OTP.tsx";
 import LoginOTP from "./pages/LoginOTP.tsx";
+import EditVisitor from "./pages/visitor_management/EditVisitor.tsx/EditVisitor.tsx";
+import AlphaLIst from "./pages/Alpha List/AlphaLIst.tsx";
+import NonPDL from "./pages/Non-PDL/NonPDL.tsx";
+import ServiceProvider from "./pages/Service/ServiceProvider.tsx";
 
 // Lazy-loaded components
 const Home = React.lazy(() => import("./pages/dashboard/Home.tsx"));
@@ -284,10 +287,6 @@ function App() {
                     element: <Roles />
                 },
                 {
-                    path: "users/role-levels",
-                    element: <RoleLevel />
-                },
-                {
                     path: "users/user-otp-account",
                     element: <OTP/>
                 },
@@ -374,6 +373,10 @@ function App() {
                 {
                     path: "visitors/visitor",
                     element: <Visitor />
+                },
+                {
+                    path: "visitors/visitor/update-visitor",
+                    element: <EditVisitor />
                 },
                 {
                     path: "visitors/visitor-type",
@@ -527,6 +530,18 @@ function App() {
                     path: "log-monitoring/visitor_check-in-out_profiles",
                     element: <VisitorProfileSlider />
                 },
+                {
+                    path: "alpha-list",
+                    element: <AlphaLIst />
+                },
+                {
+                    path: "non-pdl-visitors",
+                    element: <NonPDL />
+                },
+                {
+                    path: "service-providers",
+                    element: <ServiceProvider />
+                }
             ],
         },
     ],

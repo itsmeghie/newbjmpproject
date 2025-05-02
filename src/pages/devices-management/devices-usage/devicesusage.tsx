@@ -120,10 +120,11 @@ const DeviceUsage = () => {
     ];
     
     const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dataSource);
+        const exportData = dataSource.map(({ id, updated_by, organization, ...rest }) => rest); 
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "DeviceStatus");
-        XLSX.writeFile(wb, "DeviceStatus.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, "DevicesUsage");
+        XLSX.writeFile(wb, "DevicesUsage.xlsx");
     };
 
     const handleExportPDF = () => {
@@ -226,7 +227,7 @@ const DeviceUsage = () => {
                 <a onClick={handleExportExcel}>Export Excel</a>
             </Menu.Item>
             <Menu.Item>
-                <CSVLink data={dataSource} filename="DeviceStatus.csv">
+                <CSVLink data={dataSource.map(({ id, organization,updated_by, ...rest }) => rest)} filename="DeviceUsage.csv">
                     Export CSV
                 </CSVLink>
             </Menu.Item>

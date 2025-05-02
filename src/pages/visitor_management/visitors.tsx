@@ -39,6 +39,12 @@ const Visitors = () => {
                         <GodotLink link="/jvms/issues/recommended-action" title="Recommended Actions" />
                     </div>
                 </div>
+                <div className="border border-gray-200 p-5 w-full shadow-sm hover:shadow-md rounded-md">
+                    <div className="mt-2 ml-8">
+                        <GodotLink link="/jvms/service-providers" title="Service Provider" />
+                        <GodotLink link="/jvms/non-pdl-visitors" title="Non-PDL Visitors" />
+                    </div>
+                </div>
             </div>
         </div>
     )

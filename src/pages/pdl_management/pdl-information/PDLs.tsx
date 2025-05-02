@@ -167,7 +167,8 @@ const PDLtable = () => {
         ]
 
         const handleExportExcel = () => {
-            const ws = XLSX.utils.json_to_sheet(dataSource);
+            const exportData = dataSource.map(({ id, updated, organization, ...rest }) => rest); 
+            const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "PDL");
             XLSX.writeFile(wb, "PDL.xlsx");
@@ -276,7 +277,7 @@ const PDLtable = () => {
                     <a onClick={handleExportExcel}>Export Excel</a>
                 </Menu.Item>
                 <Menu.Item>
-                    <CSVLink data={dataSource} filename="PDL.csv">
+                    <CSVLink data={dataSource.map(({ id, organization,updated, ...rest }) => rest)} filename="PDL.csv">
                         Export CSV
                     </CSVLink>
                 </Menu.Item>

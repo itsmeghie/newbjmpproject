@@ -122,10 +122,11 @@ const VisitorRelationship = () => {
     ];
 
     const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dataSource);
+        const exportData = dataSource.map(({ id, updated_by, organization, ...rest }) => rest); 
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Visitors");
-        XLSX.writeFile(wb, "Visitors.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, "VisitorRelationship");
+        XLSX.writeFile(wb, "VisitorRelationship.xlsx");
     };
 
     const handleExportPDF = () => {
@@ -228,7 +229,7 @@ const VisitorRelationship = () => {
                 <a onClick={handleExportExcel}>Export Excel</a>
             </Menu.Item>
             <Menu.Item>
-                <CSVLink data={dataSource} filename="Visitors.csv">
+                <CSVLink data={dataSource.map(({ id, organization,updated_by, ...rest }) => rest)} filename="Visitors.csv">
                     Export CSV
                 </CSVLink>
             </Menu.Item>

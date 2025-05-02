@@ -118,12 +118,12 @@ const Skills = () => {
     ]
 
     const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dataSource);
+        const exportData = dataSource.map(({ id, updated_by, organization, ...rest }) => rest); 
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Skills");
+        XLSX.utils.book_append_sheet(wb, ws, "Skill");
         XLSX.writeFile(wb, "Skills.xlsx");
     };
-
     const handleExportPDF = () => {
         const doc = new jsPDF();
         const headerHeight = 48;
@@ -223,7 +223,7 @@ const Skills = () => {
                 <a onClick={handleExportExcel}>Export Excel</a>
             </Menu.Item>
             <Menu.Item>
-                <CSVLink data={dataSource} filename="Skills.csv">
+                <CSVLink data={dataSource.map(({ id, organization,updated_by, ...rest }) => rest)} filename="Skills.csv">
                     Export CSV
                 </CSVLink>
             </Menu.Item>
