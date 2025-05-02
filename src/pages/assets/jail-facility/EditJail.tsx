@@ -224,18 +224,18 @@ const EditJail = ({ jail, onClose }: { jail: any; onClose: () => void }) => {
                 layout="vertical"
                 onFinish={handleJailSubmit}
                 initialValues={{
-                    jail_name: jail?.jail_name ?? 'N/A',
-                    jail_type_id: jail?.jail_type_id ?? 'N/A',
-                    jail_category_id: jail.jail_category_id ?? 'N/A',
-                    email_address: jail.email_address ?? 'N/A',
-                    contact_number: jail.contact_number ?? 'N/A',
-                    jail_province_id: jail.jail_province_id ?? 'N/A',
-                    jail_city_municipality_id: jail.jail_city_municipality_id ?? 'N/A',
-                    jail_region_id: jail.jail_region_id ?? 'N/A',
-                    jail_barangay_id: jail.jail_barangay_id ?? 'N/A',
-                    jail_postal_code: jail.jail_postal_code ?? 'N/A',
-                    security_level_id: jail.security_level_id ?? 'N/A',
-                    record_status_id: jail.record_status_id ?? 'N/A',
+                    jail_name: jail?.jail_name ?? '',
+                    jail_type_id: jail?.jail_type_id ?? '',
+                    jail_category_id: jail.jail_category_id ?? '',
+                    email_address: jail.email_address ?? '',
+                    contact_number: jail.contact_number ?? '',
+                    jail_province_id: jail.jail_province_id ?? '',
+                    jail_city_municipality_id: jail.jail_city_municipality_id ?? '',
+                    jail_region_id: jail.jail_region_id ?? '',
+                    jail_barangay_id: jail.jail_barangay_id ?? '',
+                    jail_postal_code: jail.jail_postal_code ?? '',
+                    security_level_id: jail.security_level_id ?? '',
+                    record_status_id: jail.record_status_id ?? '',
                 }}
             >
                 <div className="grid grid-cols-1 md:grid-cols-2 w-full gap-3">
@@ -350,7 +350,7 @@ const EditJail = ({ jail, onClose }: { jail: any; onClose: () => void }) => {
                             placeholder="Security Level"
                             optionFilterProp="label"
                             onChange={onSecurityLevelChange}
-                            options={securityLevelData?.map(security_level => (
+                            options={securityLevelData?.map((security_level: { id: any; category_name: any; }) => (
                                 {
                                     value: security_level.id,
                                     label: security_level?.category_name,

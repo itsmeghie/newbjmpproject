@@ -75,7 +75,6 @@ const Position = () => {
             position_title: position?.position_title ?? 'N/A',
             position_level: position?.position_level ?? 'N/A',
             position_type: position?.position_type ?? 'N/A',
-            rank_required: position?.rank_required ?? 'N/A',
             organization: position?.organization ?? 'N/A',
             updated_by: `${UserData?.first_name ?? ''} ${UserData?.last_name ?? ''}`,
             is_active: position?.is_active ?? 'N/A',
@@ -115,11 +114,6 @@ const Position = () => {
             title: 'Position Type',
             dataIndex: 'position_type',
             key: 'position_type',
-        },
-        {
-            title: 'Rank Required',
-            dataIndex: 'rank_required',
-            key: 'rank_required',
         },
         {
             title: 'Organization',
@@ -215,7 +209,7 @@ const Position = () => {
                 body: pageData,
                 startY: startY,
                 margin: { top: 0, left: 10, right: 10 },
-                didDrawPage: function (data) {
+                didDrawPage: function () {
                     if (doc.internal.getCurrentPageInfo().pageNumber > 1) {
                         addHeader(); 
                     }

@@ -15,6 +15,7 @@ import EditJail from "./EditJail";
 import bjmp from '../../../assets/Logo/QCJMD.png'
 
 type Jail = {
+    organization: string;
     key: number;
     id: number;
     jail_name: string;
@@ -259,7 +260,7 @@ const jailfacility = () => {
                 body: pageData,
                 startY: startY,
                 margin: { top: 0, left: 10, right: 10 },
-                didDrawPage: function (data) {
+                didDrawPage: function () {
                     if (doc.internal.getCurrentPageInfo().pageNumber > 1) {
                         addHeader(); 
                     }

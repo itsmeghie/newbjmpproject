@@ -341,7 +341,7 @@ const AddJailFacility = ({ onClose }: { onClose: () => void }) => {
                                 optionFilterProp="label"
                                 onChange={onJailSecurityLevelChange}
                                 loading={jailSecurityLevelLoading}
-                                options={jailSecurityLevelData?.map(security_level => (
+                                options={jailSecurityLevelData?.map((security_level: { id: any; category_name: any; }) => (
                                     {
                                         value: security_level.id,
                                         label: security_level?.category_name

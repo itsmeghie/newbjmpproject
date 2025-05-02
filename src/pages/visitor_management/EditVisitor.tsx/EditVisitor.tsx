@@ -871,9 +871,7 @@ const VisitorRegistration = () => {
                 : null,
                 }));
         }, [visitorData]);
-
-        console.log(visitorForm?.pdl_data);
-
+        
     useEffect(() => {
         const short = `${personForm?.first_name?.[0] ?? ""}${personForm?.last_name?.[0] ?? ""}`;
         setPersonForm((prev) => ({ ...prev, shortname: short.toUpperCase() }));
